@@ -1,93 +1,114 @@
-# Nim Game
+## README.md COMPLET (copier-coller intégral)
 
+# NimAI – Jeu de Nim avec Intelligence Artificielle
 
+Projet universitaire implémentant le jeu de **Nim** avec une IA adversaire basée sur la théorie des graphes. L'IA utilise un graphe d'états pour calculer des coups optimaux et peut jouer à différents niveaux de difficulté.
 
-## Getting started
+## 🎯 Objectif du projet
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+Étudier les algorithmes d'exploration de graphes pour modéliser le jeu de Nim :
+- Chaque nœud représente un état du jeu (nombre d'allumettes restantes).
+- Les arêtes représentent les coups possibles (retrait de 1 à maxPick allumettes).
+- L'IA identifie les positions gagnantes (noyaux du graphe) et propose des coups optimaux.
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+**Fonction clé** : `AI_pick(graphe_t *g, int node, int chances)` retourne le coup de l'IA :
+- `node` : état actuel (nombre d'allumettes restantes)
+- `chances` : niveau de difficulté (25=facile, 50=normal, 75=difficile, 100=impossible)
+- Retourne le nombre d'allumettes à retirer (différence entre node et coup optimal)
 
-## Add your files
-
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+## 📁 Structure du projet
 
 ```
-cd existing_repo
-git remote add origin https://gitlab.etu.umontpellier.fr/e20200000960/nim-game.git
-git branch -M main
-git push -uf origin main
+.
+├── bin/              # Exécutable compilé (nim_ai)
+├── includes/         # Fichiers d'en-tête (futurs .h)
+├── src/
+│   └── Nim.c         # Code principal : graphe, IA, main()
+└── CMakeLists.txt    # Configuration de build CMake
 ```
 
-## Integrate with your tools
+## 🛠️ Prérequis
 
-* [Set up project integrations](https://gitlab.etu.umontpellier.fr/e20200000960/nim-game/-/settings/integrations)
+- **CMake** ≥ 3.15
+- **Compilateur C** : GCC, Clang (Linux/macOS) ou MSVC (Windows)
+- **Optionnel** : Qt Creator, Graphviz (pour visualiser graphe.dot)
 
-## Collaborate with your team
+**Installation rapide (Linux/macOS)** :
+```bash
+# Ubuntu/Debian
+sudo apt install cmake gcc graphviz
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+# macOS (Homebrew)
+brew install cmake gcc graphviz
+```
 
-## Test and Deploy
+## 🔨 Compilation
 
-Use the built-in continuous integration in GitLab.
+### En ligne de commande
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
+```bash
+# Depuis la racine du projet
+mkdir -p build && cd build
+cmake ..
+cmake --build . --parallel
+```
 
-***
+**Résultat** : `bin/nim_ai` est créé.
 
-# Editing this README
+## ▶️ Exécution
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+```bash
+../bin/nim_ai 
+```
 
-## Suggestions for a good README
+**Sortie** :
+- Affiche le plan de jeu optimal pour chaque état (S0 à S19)
+- Génère `graphe.dot` (visualisable avec Graphviz)
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+**Visualisation du graphe** :
+```bash
+dot -Tpng graphe.dot -o ../graphs/graphe.png
+```
 
-## Name
-Choose a self-explaining name for your project.
+## 🧠 Architecture du code
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+### Structures principales (Nim.c)
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+```c
+typedef struct chainon { int numero_sommet; struct chainon* next; } chainon_t;
+typedef chainon_t* liste_t;
+typedef struct { int nbr_sommets; liste_t *listes; } graphe_t;
+```
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+### Fonctions clés
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+| Fonction | Description |
+|----------|-------------|
+| `init_graphe(nbRod, maxPick)` | Crée le graphe des états du jeu |
+| `noyau(g)` | Calcule les positions gagnantes (noyaux) |
+| `jouer_coup(g, sommet)` | Coup optimal depuis un état donné |
+| `AI_pick(g, node, chances)` | Coup IA (optimal ou aléatoire selon chances) |
+| `write_graphviz(f, g)` | Export Graphviz (.dot) |
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+## 📝 Intégration dans un jeu complet
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+Pour utiliser l'IA dans votre jeu Nim complet :
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+```c
+graphe_t g = init_graphe(20, 3);   // 20 allumettes, max 3 par coup
+int etat_actuel = 15;              // 15 allumettes restantes
+int coup_ia = AI_pick(&g, etat_actuel, 75);  // Difficulté difficile
+int allumettes_retriees = etat_actuel - coup_ia;
+detruire_graphe(&g);
+```
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+## 🤝 Contribution
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+1. Ajoutez vos `.c` dans `src/` et mettez à jour `SOURCES` dans CMakeLists.txt
+2. Placez les `.h` dans `includes/`
+3. Testez avec `cmake --build build --clean-first`
+4. Documentez vos ajouts dans ce README
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+## 📄 Licence
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+Projet universitaire – utilisation libre dans le cadre du cours.
