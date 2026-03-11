@@ -1,0 +1,7 @@
+A FAIRE :
+
+- Tommy : Stratégie
+
+- Ryan : Interface
+
+- Killian : recherche document implémentation jeu de Nim + stratégie douce (le joueur doit pouvoir gagner)
