@@ -1,0 +1,56 @@
+########################
+# Fichiers binaires lourds
+########################
+
+# Images
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.tiff
+*.tif
+*.webp
+*.heic
+
+# Archives
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+
+# Modèles 3D
+*.off
+*.obj
+*.fbx
+*.stl
+*.ply
+*.glb
+*.gltf
+
+# Fichiers multimédia
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.mp3
+*.wav
+*.flac
+
+# Autres fichiers potentiellement volumineux (à adapter)
+*.iso
+*.dmg
+*.bak
+*.tmp
+*.log
+*.idx
+
+# Dossiers de données volumineuses (exemples, adapte les noms)
+data/
+datasets/
+exports/
+outputs/
+results/
+build/
