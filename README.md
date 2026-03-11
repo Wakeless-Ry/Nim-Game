@@ -1,5 +1,3 @@
-## README.md COMPLET (copier-coller intégral)
-
 # NimAI – Jeu de Nim avec Intelligence Artificielle
 
 Projet universitaire implémentant le jeu de **Nim** avec une IA adversaire basée sur la théorie des graphes. L'IA utilise un graphe d'états pour calculer des coups optimaux et peut jouer à différents niveaux de difficulté.
