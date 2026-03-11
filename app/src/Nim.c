@@ -109,7 +109,7 @@ void write_graphviz(FILE *f, graphe_t *g) { // Formate le graphe dans un fichier
     fprintf(f, "}\n");
 }
 
-int jouer_coup(graphe_t *g, int sommet_actuel) {    // Renvoie le coup optimal (correspondant à u sommet du graphe)
+int jouer_coup(graphe_t *g, int sommet_actuel) {    // Renvoie le coup optimal (correspondant à un sommet du graphe)
     liste_t noyal = noyau(g);
     liste_t liste = g->listes[sommet_actuel];
     int res = g->nbr_sommets;
@@ -148,11 +148,15 @@ void plan_de_jeu(graphe_t *g) { // Sert à afficher le plan de jeu idéal de l'I
     }
 }
 
-int AI_pick(graphe_t *g, int node, int chances) {   // Renvoie un coup à jouer (correspondant ici à un sommet du graphe)
+int AI_pick(graphe_t *g, int node, int chances) {   // Renvoie le nombre d'allumette que l'IA retire
     int r = (int)rand()%101;
 
     if (r < chances) {
-        return (jouer_coup(g, node));
+        int coup = jouer_coup(g, node);
+        if (coup < g->nbr_sommets)
+            return (node - coup);
+        else 
+            return ((int)rand()%3 + 1); // Si aucun coup n'est optimal, joue aléatoirement
     }
     else {
         return ((int)rand()%3 + 1);
@@ -176,8 +180,6 @@ int main() {
 
 /*
     Pour résumer, tu veux principalement utiliser la fonction AI_pick() pour avoir le coup de l'IA.
-    Le numéro du sommet correspond au nombre d'allumette restantes.
-    Donc pour avoir le nombre d'allumettes retirées par l'IA tu fait la différence entre le noeud actuel et le noeud choisi par l'IA.
     La fonction nécessite le noeud actuel pour fonctionner, il faut y penser.
     Le int chances correspond à la difficulté, on peut partir sur : 
         Facile = 25
