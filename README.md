@@ -100,13 +100,6 @@ int allumettes_retriees = etat_actuel - coup_ia;
 detruire_graphe(&g);
 ```
 
-## 8. Contribution
-
-1. Ajoutez vos `.c` dans `src/` et mettez à jour `SOURCES` dans CMakeLists.txt
-2. Placez les `.h` dans `includes/`
-3. Testez avec `cmake --build build --clean-first`
-4. Documentez vos ajouts dans ce README
-
-## 9. Licence
+## 8. Licence
 
 Projet universitaire – utilisation libre dans le cadre du cours.
