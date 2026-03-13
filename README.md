@@ -1,105 +1,158 @@
-# NimAI – Jeu de Nim avec Intelligence Artificielle
+# Nim AI - Intelligence Artificielle pour le jeu de Nim
 
-Projet universitaire implémentant le jeu de **Nim** avec une IA adversaire basée sur la théorie des graphes. L'IA utilise un graphe d'états pour calculer des coups optimaux et peut jouer à différents niveaux de difficulté.
+## Description du projet
 
-## 1. Objectif du projet
+Ce projet universitaire implémente une intelligence artificielle jouant au jeu de Nim contre un joueur humain avec difficulté adaptable. L'IA utilise une approche théorique basée sur la théorie des graphes et le calcul du noyau du graphe pour déterminer les coups gagnants. L'interface graphique SFML offre une expérience utilisateur fluide avec sélection visuelle des allumettes, animations et feedback en temps réel.
 
-Étudier les algorithmes d'exploration de graphes pour modéliser le jeu de Nim :
-- Chaque nœud représente un état du jeu (nombre d'allumettes restantes).
-- Les arêtes représentent les coups possibles (retrait de 1 à maxPick allumettes).
-- L'IA identifie les positions gagnantes (noyaux du graphe) et propose des coups optimaux.
+## Fonctionnement général du jeu de Nim
 
-**Fonction clé** : `AI_pick(graphe_t *g, int node, int chances)` retourne le coup de l'IA :
-- `node` : état actuel (nombre d'allumettes restantes)
-- `chances` : niveau de difficulté (25=facile, 50=normal, 75=difficile, 100=impossible)
-- Retourne le nombre d'allumettes à retirer (différence entre node et coup optimal)
+Le jeu de Nim classique consiste en un tas d'allumettes où les joueurs alternent pour en retirer 1 à *max_pick* allumettes. Le joueur qui prend la dernière allumette gagne. L'IA modélise le jeu comme un graphe orienté où :
+- Chaque sommet représente un nombre d'allumettes restantes
+- Les arêtes relient un état vers les états accessibles (en retirant 1 à *max_pick* allumettes)
+- Le **noyau du graphe** identifie les positions perdantes pour l'adversaire
+- L'IA priorise les transitions vers ces positions avec une probabilité contrôlée par le niveau de difficulté
 
-## 2. Structure du projet
+## Architecture du projet
 
 ```
-.
-├── bin/              # Exécutable compilé (nim_ai)
-├── includes/         # Fichiers d'en-tête (futurs .h)
-├── src/
-│   └── Nim.c         # Code principal : graphe, IA, main()
-└── CMakeLists.txt    # Configuration de build CMake
+app
+├── bin/              # Exécutable et fichiers de sortie
+│   ├── nim_ai        # Binaire compilé
+│   └── graphe.dot    # Représentation GraphViz (généré)
+├── build/            # Fichiers de compilation CMake
+├── graphs/           # Images de graphes générés
+├── includes/         # En-têtes publics (.h/.hpp)
+├── src/              # Sources d'implémentation (.c/.cpp)
+├── CMakeLists.txt    # Configuration de build
+└── main.cpp          # Point d'entrée
 ```
 
-## 3. Prérequis
+**Séparation des responsabilités :**
+- **AI** : Calculs algorithmiques (graphes, noyau, stratégie)
+- **Game** : État du jeu et règles métier
+- **Interface** : Affichage SFML et interactions utilisateur
+- **main** : Orchestration et cycle de vie
 
-- **CMake** ≥ 3.15
-- **Compilateur C** : GCC, Clang (Linux/macOS) ou MSVC (Windows)
-- **Optionnel** : Qt Creator, Graphviz (pour visualiser graphe.dot)
+## Description des fichiers principaux
 
-**Installation rapide (Linux/macOS)** :
+| Fichier | Langage | Rôle principal |
+|---------|---------|----------------|
+| `src/AI.c` | C | Implémentation de l'IA basée sur graphes |
+| `includes/AI.h` | C | Déclarations des structures graphe/liste |
+| `src/Game.c` | C | Gestion de l'état de jeu et règles |
+| `includes/Game.h` | C | Interface C compatible C++ pour GameState |
+| `src/Interface.cpp` | C++ | Interface graphique SFML complète |
+| `includes/Interface.hpp` | C++ | Déclaration de l'interface utilisateur |
+| `src/main.cpp` | C++ | Initialisation et boucle principale |
+| `CMakeLists.txt` | CMake | Configuration multi-langage C/C++ + SFML |
+
+## Fonctions et méthodes importantes
+
+### Module AI (`AI.c`)
+```c
+graphe_t init_graphe(int nbRod, int maxPick);
+```
+Crée le graphe des positions du jeu avec arêtes sortantes vers positions accessibles.
+
+```c
+liste_t noyau(graphe_t *g);
+```
+Calcule le noyau du graphe (positions perdantes pour le joueur à bouger) via un algorithme rétrograde.
+
+```c
+int AI_pick(graphe_t *g, int node, int chances);
+```
+Sélectionne le coup optimal avec probabilité `chances%`, sinon coup aléatoire.
+
+### Module Game (`Game.c`)
+```c
+void init_game(GameState* state);
+```
+Initialise l'état avec graphe IA et paramètres de difficulté.
+
+```c
+int ai_picks(GameState* state);
+```
+Exécute le tour de l'IA en appelant `AI_pick()`.
+
+### Interface SFML (`Interface.cpp`)
+```cpp
+int run_interface(GameState& game_state);
+```
+Boucle principale SFML avec :
+- Rendu des allumettes animées (wobble, hover, sélection)
+- Gestion des clics (sélection, confirm/cancel/reset)
+- Affichage des tours et résultats
+
+## Instructions de compilation
+
 ```bash
-# Ubuntu/Debian
-sudo apt install cmake gcc graphviz
+# Prérequis : SFML 2.5+ (graphics, window, system)
+# Ubuntu/Debian :
+sudo apt install libsfml-dev cmake build-essential
 
-# macOS (Homebrew)
-brew install cmake gcc graphviz
-```
+# Création du répertoire de build
+mkdir build && cd build
 
-## 4. Compilation
-
-### En ligne de commande
-
-```bash
-# Depuis la racine du projet
-mkdir -p build && cd build
+# Configuration CMake
 cmake ..
-cmake --build . --parallel
+
+# Compilation
+make -j$(nproc)
+
+# L'exécutable est généré dans bin/nim_ai
 ```
 
-**Résultat** : `bin/nim_ai` est créé.
+**Configuration par défaut :**
+- 20 allumettes, max 3 par tour
+- Difficulté IA : 50% (probabilité de coup optimal)
 
-## 5. Exécution
+## Instructions d'exécution
 
 ```bash
-../bin/nim_ai 
+# Depuis le répertoire build/
+./nim_ai
+
+# Ou depuis la racine du projet après build/
+./bin/nim_ai
 ```
 
-**Sortie** :
-- Affiche le plan de jeu optimal pour chaque état (S0 à S19)
-- Génère `graphe.dot` (visualisable avec Graphviz)
+**Contrôles :**
+- Clic gauche sur allumettes : sélection/désélection (max 3)
+- Bouton CONFIRM : valider le tour
+- Bouton CANCEL : désélectionner tout
+- Bouton RESET : recommencer (20 allumettes)
 
-**Visualisation du graphe** :
-```bash
-dot -Tpng graphe.dot -o ../graphs/graphe.png
-```
+## Organisation et conseils pour les développeurs
 
-## 6. Architecture du code
-
-### Structures principales (Nim.c)
-
+### Structure GameState
 ```c
-typedef struct chainon { int numero_sommet; struct chainon* next; } chainon_t;
-typedef chainon_t* liste_t;
-typedef struct { int nbr_sommets; liste_t *listes; } graphe_t;
+typedef struct {
+    int total_sticks;     // Allumettes restantes
+    int max_pick;         // Maximum par tour
+    int player_turn;      // 1=joueur, 0=IA
+    int ai_difficulty;    // % coup optimal (0-100)
+    graphe_t ai_graphe;   // État du graphe IA
+} GameState;
 ```
 
-### Fonctions clés
+### Bonnes pratiques adoptées
+- **Interopérabilité C/C++** : `extern "C"` dans `Game.h`
+- **Séparation stricte** : UI → Game → AI (aucun couplage circulaire)
+- **Gestion mémoire** : `detruire_graphe()` appelée dans `main()`
+- **Thread-safe** : IA purement fonctionnelle
 
-| Fonction | Description |
-|----------|-------------|
-| `init_graphe(nbRod, maxPick)` | Crée le graphe des états du jeu |
-| `noyau(g)` | Calcule les positions gagnantes (noyaux) |
-| `jouer_coup(g, sommet)` | Coup optimal depuis un état donné |
-| `AI_pick(g, node, chances)` | Coup IA (optimal ou aléatoire selon chances) |
-| `write_graphviz(f, g)` | Export Graphviz (.dot) |
+### Extensions possibles
+1. **Difficultés multiples** : Modifier `ai_difficulty` via menu
+2. **Multi-tas Nim** : Étendre `graphe_t` en produit cartésien
+3. **Replay système** : Enregistrer les coups dans `bin/replay.txt`
+4. **Tests unitaires** : Ajouter répertoire `tests/` avec GoogleTest
 
-## 7. Intégration dans un jeu complet
-
-Pour utiliser l'IA dans votre jeu Nim complet :
-
-```c
-graphe_t g = init_graphe(20, 3);   // 20 allumettes, max 3 par coup
-int etat_actuel = 15;              // 15 allumettes restantes
-int coup_ia = AI_pick(&g, etat_actuel, 75);  // Difficulté difficile
-int allumettes_retriees = etat_actuel - coup_ia;
-detruire_graphe(&g);
+### Dépannage compilation
+```
+Erreur SFML : sudo apt install libsfml-dev
+Erreur CMake : rm -rf build/ && mkdir build && cd build && cmake ..
+Police manquante : Interface fonctionne avec police système par défaut
 ```
 
-## 8. Licence
-
-Projet universitaire – utilisation libre dans le cadre du cours.
+**Licence** : Projet universitaire - libre usage interne au groupe.
