@@ -11,7 +11,7 @@ set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
 find_package(SFML 2.5 COMPONENTS graphics window system REQUIRED)
 
 # CHEMIN CORRIGÉ : src/nim_game.cpp (PAS app/src/)
-set(SOURCE_FILE "src/nim_game.cpp")
+set(SOURCE_FILE "src/nim_interface.cpp")
 if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${SOURCE_FILE}")
     message(FATAL_ERROR "Fichier source manquant: ${SOURCE_FILE}")
 endif()
