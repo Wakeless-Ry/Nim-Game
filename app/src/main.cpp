@@ -4,7 +4,7 @@
 #include <cstdio>
 
 int main() {
-  GameState game = {15, 3, 1, 40, {0, NULL}};
+  GameState game = {-1, 15, 3, 1, 40, 0, 0 {0, NULL}};
 
   while (true) {
     // Show menu — fills game with chosen stick count, difficulty, etc.

@@ -7,15 +7,6 @@ extern "C" {
 
 #include "AI.h"
 
-typedef struct {
-  int total_sticks;
-  int max_pick;
-  int player_turn;
-  int ai_difficulty;
-  graphe_t ai_graphe;
-
-} GameState;
-
 #ifdef __cplusplus
 void init_game(GameState *state);
 int player_picks(GameState *state, int count);
