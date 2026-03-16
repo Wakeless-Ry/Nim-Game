@@ -78,6 +78,61 @@ bool drawButton(sf::RenderWindow &win, sf::Font &font, const std::string &label,
   return hov;
 }
 
+// Return values: 0 = back to menu, -1 = quit
+// playerWon: true = player won, false = AI won
+static int showEndScreen(sf::RenderWindow &window, sf::Font &font,
+                         bool playerWon) {
+  const std::string title = playerWon ? "VOUS GAGNEZ !" : "IA GAGNE !";
+  const sf::Color titleCol = playerWon ? AMBER : RED_HEAD;
+
+  sf::Clock clock;
+  while (window.isOpen()) {
+    sf::Vector2f mouse(sf::Mouse::getPosition(window));
+    sf::Event ev;
+    while (window.pollEvent(ev)) {
+      if (ev.type == sf::Event::Closed) {
+        window.close();
+        return -1;
+      }
+      if (ev.type == sf::Event::MouseButtonPressed &&
+          ev.mouseButton.button == sf::Mouse::Left) {
+        // REJOUER button
+        if (sf::FloatRect{WIN_W / 2.f - 130.f, WIN_H / 2.f + 60.f, 115.f, 44.f}
+                .contains(mouse))
+          return 1; // replay with same settings
+        // MENU button
+        if (sf::FloatRect{WIN_W / 2.f + 15.f, WIN_H / 2.f + 60.f, 115.f, 44.f}
+                .contains(mouse))
+          return 0; // back to menu
+      }
+    }
+
+    window.clear(BG);
+
+    // Dim overlay
+    sf::RectangleShape overlay({(float)WIN_W, (float)WIN_H});
+    overlay.setFillColor({10, 8, 16, 210});
+    window.draw(overlay);
+
+    // Result title
+    drawTextCentered(window, font, title, 52, titleCol, WIN_W / 2.f,
+                     WIN_H / 2.f - 50.f);
+    drawTextCentered(window, font,
+                     playerWon ? "Bien joué !"
+                               : "Meilleure chance la prochaine fois.",
+                     18, MUTED, WIN_W / 2.f, WIN_H / 2.f + 10.f);
+
+    // Buttons
+    drawButton(window, font, "REJOUER", WIN_W / 2.f - 130.f, WIN_H / 2.f + 60.f,
+               115.f, 44.f, mouse, {40, 80, 50}, {55, 120, 70});
+    drawButton(window, font, "MENU", WIN_W / 2.f + 15.f, WIN_H / 2.f + 60.f,
+               115.f, 44.f, mouse, {50, 40, 70}, {75, 60, 105});
+
+    window.display();
+  }
+  return -1;
+}
+
 int run_interface(GameState &game_state) {
   sf::RenderWindow window(sf::VideoMode(WIN_W, WIN_H), "Nim — IA vs Humain",
                           sf::Style::Titlebar | sf::Style::Close);
@@ -166,13 +221,7 @@ int run_interface(GameState &game_state) {
           player_picks(&game_state, picked);
 
           if (game_state.total_sticks <= 0) {
-            std::string result = "VOUS GAGNEZ!";
-            sf::Color resultColor = AMBER;
-            drawTextCentered(window, font, result, 40, resultColor, WIN_W / 2.f,
-                             WIN_H / 2.f);
-            window.display();
-            sf::sleep(sf::seconds(3));
-            return 0;
+            return showEndScreen(window, font, true);
           }
 
           if (game_state.total_sticks > 0) {
@@ -188,13 +237,7 @@ int run_interface(GameState &game_state) {
             showAIMessage = true;
 
             if (game_state.total_sticks <= 0) {
-              std::string result = "IA GAGNE!";
-              sf::Color resultColor = RED_HEAD;
-              drawTextCentered(window, font, result, 40, resultColor,
-                               WIN_W / 2.f, WIN_H / 2.f);
-              window.display();
-              sf::sleep(sf::seconds(3));
-              return 0;
+              return showEndScreen(window, font, false);
             }
           }
 

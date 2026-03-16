@@ -125,8 +125,8 @@ bool run_menu(GameState &game_state) {
 
   // ── State ────────────────────────────────────────────────
   int selectedDiff = 1; // 0=easy … 3=impossible
-  int stickCount = 15;  // default
-  const int STICK_MIN = 5;
+  int stickCount = 20;  // default
+  const int STICK_MIN = 10;
   const int STICK_MAX = 50;
 
   // ── Decorative background sticks ─────────────────────────
