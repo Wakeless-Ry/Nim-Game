@@ -14,6 +14,8 @@ set(SOURCES
     src/Game.c
     src/Interface.cpp
     src/AI.c
+    src/menu.cpp
+    includes/menu.hpp
     includes/Game.h
     includes/AI.h
     includes/Interface.hpp
