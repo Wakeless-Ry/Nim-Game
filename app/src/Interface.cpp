@@ -199,10 +199,6 @@ int run_interface(GameState &game_state) {
         bool cancelHov =
             sf::FloatRect{WIN_W / 2.f + 10.f, WIN_H - 100.f, 105.f, 40.f}
                 .contains(mouse);
-        bool resetHov =
-            sf::FloatRect{WIN_W - 130.f, WIN_H - 60.f, 90.f, 32.f}.contains(
-                mouse);
-
         if (confirmHov && selCount > 0 && player_turn) {
           if (selCount > game_state.max_pick) {
             showMaxError = true;
@@ -248,9 +244,6 @@ int run_interface(GameState &game_state) {
             s.selected = false;
           selCount = 0;
           showMaxError = false;
-        } else if (resetHov) {
-          game_state.total_sticks = 20;
-          layoutSticks();
         } else {
           for (auto &s : sticks) {
             if (s.taken)
@@ -330,9 +323,6 @@ int run_interface(GameState &game_state) {
 
     drawButton(window, font, "CANCEL", WIN_W / 2.f + 10.f, WIN_H - 100.f, 105.f,
                40.f, mouse, {90, 40, 40}, {130, 55, 55});
-
-    drawButton(window, font, "RESET", WIN_W - 130.f, WIN_H - 60.f, 90.f, 32.f,
-               mouse, {40, 35, 55}, {60, 50, 80}, MUTED);
 
     if (selCount > 0) {
       std::string hint = "Sélection: " + std::to_string(selCount);

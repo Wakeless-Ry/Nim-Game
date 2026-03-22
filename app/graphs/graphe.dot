@@ -1,0 +1,70 @@
+digraph G {
+	layout=dot
+	rankdir=LR
+	node [ shape=circle, width=.5, fixedsize=true, style=filled,
+		colorscheme=paired12, color=2, fillcolor=2, fontcolor=11 ]
+	edge [ width=.4, penwidth=2, colorscheme=paired12, color=2 ]
+    S0 [ color=12, fillcolor=12 ]
+    S4 [ color=12, fillcolor=12 ]
+    S8 [ color=12, fillcolor=12 ]
+    S12 [ color=12, fillcolor=12 ]
+    S16 [ color=12, fillcolor=12 ]
+    S20 [ color=12, fillcolor=12 ]
+    S1 -> S0
+    S2 -> S0
+    S2 -> S1
+    S3 -> S0
+    S3 -> S1
+    S3 -> S2
+    S4 -> S1
+    S4 -> S2
+    S4 -> S3
+    S5 -> S2
+    S5 -> S3
+    S5 -> S4
+    S6 -> S3
+    S6 -> S4
+    S6 -> S5
+    S7 -> S4
+    S7 -> S5
+    S7 -> S6
+    S8 -> S5
+    S8 -> S6
+    S8 -> S7
+    S9 -> S6
+    S9 -> S7
+    S9 -> S8
+    S10 -> S7
+    S10 -> S8
+    S10 -> S9
+    S11 -> S8
+    S11 -> S9
+    S11 -> S10
+    S12 -> S9
+    S12 -> S10
+    S12 -> S11
+    S13 -> S10
+    S13 -> S11
+    S13 -> S12
+    S14 -> S11
+    S14 -> S12
+    S14 -> S13
+    S15 -> S12
+    S15 -> S13
+    S15 -> S14
+    S16 -> S13
+    S16 -> S14
+    S16 -> S15
+    S17 -> S14
+    S17 -> S15
+    S17 -> S16
+    S18 -> S15
+    S18 -> S16
+    S18 -> S17
+    S19 -> S16
+    S19 -> S17
+    S19 -> S18
+    S20 -> S17
+    S20 -> S18
+    S20 -> S19
+}

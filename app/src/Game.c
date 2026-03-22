@@ -6,9 +6,11 @@ void init_game(GameState* state) {
     state->last_pick = -1;
     printf("Jeu initialisé: %d allumettes (difficulte: %d)\n", 
            state->total_sticks, state->ai_difficulty);
-    FILE *f = fopen("../graphs/graphe.dot", "w");
-    write_graphviz(f, &state->ai_graphe, state);
-    fclose(f);
+    FILE *f = fopen("graphs/graphe.dot", "w");
+    if (f) {
+        write_graphviz(f, &state->ai_graphe);
+        fclose(f);
+    }
 }
 
 int player_picks(GameState* state, int count) {

@@ -1,10 +1,10 @@
 #include "../includes/Game.h"
 #include "../includes/Interface.hpp"
-#include "../includes/Menu.hpp"
+#include "../includes/menu.hpp"
 #include <cstdio>
 
 int main() {
-  GameState game = {-1, 15, 3, 1, 40, 0, 0 {0, NULL}};
+  GameState game = {-1, 15, 3, 1, 40, AI_STRATEGY_MIXED, {0, NULL}};
 
   while (true) {
     // Show menu — fills game with chosen stick count, difficulty, etc.
