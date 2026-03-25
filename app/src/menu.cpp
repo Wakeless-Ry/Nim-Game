@@ -28,7 +28,9 @@ struct Strategy {
 };
 
 static const Strategy STRATEGIES[5] = {
-    {"MIXTE", "Probabiliste", {90, 150, 230}},
+    {"Graphe optimale",
+     "avec degre d'erreurs\n \t\t introduit",
+     {90, 150, 230}},
     {"COPIE", "Copie vos coups", {160, 110, 220}},
     {"MINIMAX", "Negamax borne", {70, 190, 140}},
     {"MCTS", "Monte Carlo", {250, 155, 50}},
@@ -137,7 +139,7 @@ bool run_menu(GameState &game_state) {
   }
 
   // ── State ────────────────────────────────────────────────
-  int selectedStrat = 0; // 0=MIXTE … 4=RECUIT
+  int selectedStrat = 0; // 0=Graphe … 4=RECUIT
   int selectedDiff = 1;  // 0=FACILE … 3=IMPOSSIBLE
   int stickCount = 20;
   const int STICK_MIN = 3;

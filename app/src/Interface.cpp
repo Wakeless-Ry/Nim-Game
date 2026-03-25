@@ -119,7 +119,7 @@ static int showEndScreen(sf::RenderWindow &window, sf::Font &font,
                      WIN_H / 2.f - 50.f);
     drawTextCentered(window, font,
                      playerWon ? "Bien joue !"
-                               : "Dommage, peut-être la prochaine fois",
+                               : "Dommage, peut-etre la prochaine fois",
                      18, MUTED, WIN_W / 2.f, WIN_H / 2.f + 10.f);
 
     // Buttons

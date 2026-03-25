@@ -69,7 +69,7 @@ Au lancement, le menu propose trois paramètres :
 
 | Section | Options |
 |---------|---------|
-| **Stratégie de l'IA** | MIXTE, COPIE, MINIMAX, MCTS, RECUIT |
+| **Stratégie de l'IA** | GRAPHE, COPIE, MINIMAX, MCTS, RECUIT |
 | **Difficulté** | FACILE (25), MOYEN (50), DIFFICILE (75), IMPOSSIBLE (100) |
 | **Nombre d'allumettes** | 3 à 50 |
 
@@ -78,7 +78,7 @@ La signification concrète de la difficulté dépend de la stratégie choisie (v
 ### Déroulement d'une partie
 
 1. Cliquer sur les allumettes pour en sélectionner 1, 2 ou 3.
-2. Appuyer sur **CONFIRM** pour valider son coup.
+2. Appuyer sur **CONFIRMER** pour valider son coup.
 3. L'IA joue immédiatement après.
 4. La partie se termine quand plus aucune allumette ne reste.
 5. En fin de partie : **REJOUER** (mêmes paramètres) ou **MENU** (retour aux réglages).
@@ -87,7 +87,7 @@ La signification concrète de la difficulté dépend de la stratégie choisie (v
 
 ## Les 5 stratégies de l'IA
 
-### 1. MIXTE — Probabiliste
+### 1. GRAPHE OPTIMALE
 
 **Principe :** À chaque tour, l'IA tire un nombre aléatoire. Avec une probabilité égale à `difficulté %`, elle joue le coup mathématiquement optimal (via le calcul du noyau du graphe). Sinon, elle joue un coup aléatoire entre 1 et 3.
 
@@ -104,7 +104,7 @@ P(coup optimal) = ai_difficulty / 100
 | DIFFICILE | 75 | Optimal 3 fois sur 4 |
 | IMPOSSIBLE | 100 | Toujours optimal |
 
-**Efficacité :** La stratégie MIXTE est la plus "propre" pour modéliser un joueur imparfait. À IMPOSSIBLE, elle est **mathématiquement parfaite** — elle ne peut pas perdre face à un joueur en N-position. Aux niveaux inférieurs, les erreurs sont indépendantes et uniformément distribuées, ce qui lui donne un caractère aléatoire mais prévisible.
+**Efficacité :** La stratégie GRAPHE OPTIMALE est la plus "propre" pour modéliser un joueur imparfait. À IMPOSSIBLE, elle est **mathématiquement parfaite** — elle ne peut pas perdre face à un joueur en N-position. Aux niveaux inférieurs, les erreurs sont indépendantes et uniformément distribuées, ce qui lui donne un caractère aléatoire mais prévisible.
 
 ---
 
@@ -166,13 +166,13 @@ nb_simulations = ai_difficulty + 1
 | DIFFICILE | 75 | 76 | Bon sur petits tas |
 | IMPOSSIBLE | 100 | 101 | Quasi-optimal pour N ≤ ~20 |
 
-**Efficacité :** Le MCTS est fondamentalement **statistique** : plus le budget de simulations est grand, plus l'estimation est précise. Avec 101 simulations et seulement 2-3 coups possibles (~34 simulations par coup), la convergence est bonne pour de petits tas mais devient insuffisante pour de grands N (50 allumettes). Contrairement à MINIMAX, le MCTS peut théoriquement être battu même à IMPOSSIBLE si la variance des simulations joue contre lui. Il reste néanmoins très efficace en pratique pour les tailles standard (10-20 allumettes).
+**Efficacité :** Le MCTS est fondamentalement **statistique** : plus le budget de simulations est grand, plus l'estimation est précise. Avec 101 simulations et seulement 2-3 coups possibles (~34 simulations par coup), la convergence est bonne pour de petits tas mais devient insuffisante pour de grands N (50 allumettes). Contrairement à MINIMAX, le MCTS peut-être battu même à IMPOSSIBLE si la variance des simulations joue contre lui. Il reste néanmoins très efficace en pratique pour les tailles standard (10-20 allumettes).
 
 ---
 
 ### 5. RECUIT — Recuit Simulé (Simulated Annealing)
 
-**Principe :** L'IA calcule d'abord le coup optimal (via le noyau du graphe), puis tire un coup candidat aléatoire. Elle compare les deux via une évaluation Negamax à profondeur 2. Si le candidat est meilleur ou équivalent, il est accepté. Sinon, il est accepté avec une probabilité probabiliste décroissante avec l'écart de qualité :
+**Principe :** L'IA calcule d'abord le coup optimal (via le noyau du graphe), puis tire un coup candidat aléatoire. Elle compare les deux via une évaluation Negamax à profondeur 2. Si le candidat est meilleur ou équivalent, il est accepté. Sinon, il est accepté avec une probabilité décroissante avec l'écart de qualité :
 
 ```
 P(accepter sous-optimal) = e^(-Δ/T)
@@ -203,7 +203,7 @@ T = (100 - ai_difficulty) / 20.0 + 0.01
 
 | Stratégie | Garantie théorique | Notes |
 |-----------|-------------------|-------|
-| MIXTE | Parfaite | Joue toujours dans le noyau |
+| GRAPHE OPTIMAL | Parfaite | Joue toujours dans le noyau |
 | COPIE | Nulle | Aucune base théorique |
 | MINIMAX | Parfaite (depth ≥ 4) | Couvre tous les cas en depth=10 |
 | MCTS | Quasi-parfaite | Variance résiduelle avec 101 simulations |
@@ -211,7 +211,7 @@ T = (100 - ai_difficulty) / 20.0 + 0.01
 
 ### Pour simuler un joueur "humain imparfait"
 
-La stratégie **MIXTE** est la plus fidèle : les erreurs sont indépendantes et proportionnelles au niveau choisi. **RECUIT** simule un joueur qui fait moins souvent de grosses erreurs que de petites — comportement plus "humain". **COPIE** simule un joueur distrait qui ne réfléchit pas. **MINIMAX FACILE** simule un joueur qui voit loin devant lui mais pas assez loin.
+La stratégie **GRAPHE OPTIMAL** est la plus fidèle : les erreurs sont indépendantes et proportionnelles au niveau choisi. **RECUIT** simule un joueur qui fait moins souvent de grosses erreurs que de petites — comportement plus "humain". **COPIE** simule un joueur distrait qui ne réfléchit pas. **MINIMAX FACILE** simule un joueur qui voit loin devant lui mais pas assez loin.
 
 ### Limite universelle : les P-positions
 
