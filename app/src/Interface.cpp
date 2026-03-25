@@ -82,7 +82,7 @@ bool drawButton(sf::RenderWindow &win, sf::Font &font, const std::string &label,
 // playerWon: true = player won, false = AI won
 static int showEndScreen(sf::RenderWindow &window, sf::Font &font,
                          bool playerWon) {
-  const std::string title = playerWon ? "VOUS AVEZ GAGNEZ !" : "L'IA GAGNE !";
+  const std::string title = playerWon ? "TU ES LE VAINQUEUR !" : "L'IA GAGNE !";
   const sf::Color titleCol = playerWon ? AMBER : RED_HEAD;
 
   sf::Clock clock;
@@ -118,7 +118,7 @@ static int showEndScreen(sf::RenderWindow &window, sf::Font &font,
     drawTextCentered(window, font, title, 52, titleCol, WIN_W / 2.f,
                      WIN_H / 2.f - 50.f);
     drawTextCentered(window, font,
-                     playerWon ? "Bien joue !"
+                     playerWon ? "Bravo !"
                                : "Dommage, peut-etre la prochaine fois",
                      18, MUTED, WIN_W / 2.f, WIN_H / 2.f + 10.f);
 
