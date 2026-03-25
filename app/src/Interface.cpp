@@ -82,7 +82,7 @@ bool drawButton(sf::RenderWindow &win, sf::Font &font, const std::string &label,
 // playerWon: true = player won, false = AI won
 static int showEndScreen(sf::RenderWindow &window, sf::Font &font,
                          bool playerWon) {
-  const std::string title = playerWon ? "VOUS GAGNEZ !" : "IA GAGNE !";
+  const std::string title = playerWon ? "VOUS AVEZ GAGNEZ !" : "L'IA GAGNE !";
   const sf::Color titleCol = playerWon ? AMBER : RED_HEAD;
 
   sf::Clock clock;
@@ -118,8 +118,8 @@ static int showEndScreen(sf::RenderWindow &window, sf::Font &font,
     drawTextCentered(window, font, title, 52, titleCol, WIN_W / 2.f,
                      WIN_H / 2.f - 50.f);
     drawTextCentered(window, font,
-                     playerWon ? "Bien joué !"
-                               : "Meilleure chance la prochaine fois.",
+                     playerWon ? "Bien joue !"
+                               : "Dommage, peut-être la prochaine",
                      18, MUTED, WIN_W / 2.f, WIN_H / 2.f + 10.f);
 
     // Buttons
@@ -306,7 +306,7 @@ int run_interface(GameState &game_state) {
     }
 
     if (showAIMessage) {
-      std::string message = "IA prend " + aiPickedCount + " allumette(s)!";
+      std::string message = "L'IA prend " + aiPickedCount + " allumette(s)!";
       drawTextCentered(window, font, message, 28, MUTED, WIN_W / 2.f,
                        WIN_H / 4.f);
     }
@@ -315,17 +315,17 @@ int run_interface(GameState &game_state) {
         (selCount > 0 && selCount <= game_state.max_pick && player_turn)
             ? sf::Color{40, 100, 60}
             : sf::Color{30, 50, 35};
-    bool confirmHov = drawButton(window, font, "CONFIRM", WIN_W / 2.f - 115.f,
+    bool confirmHov = drawButton(window, font, "CONFIRMER", WIN_W / 2.f - 115.f,
                                  WIN_H - 100.f, 105.f, 40.f, mouse, confirmFill,
                                  selCount > 0 && selCount <= game_state.max_pick
                                      ? sf::Color{55, 140, 80}
                                      : confirmFill);
 
-    drawButton(window, font, "CANCEL", WIN_W / 2.f + 10.f, WIN_H - 100.f, 105.f,
-               40.f, mouse, {90, 40, 40}, {130, 55, 55});
+    drawButton(window, font, "ANNULER", WIN_W / 2.f + 10.f, WIN_H - 100.f,
+               105.f, 40.f, mouse, {90, 40, 40}, {130, 55, 55});
 
     if (selCount > 0) {
-      std::string hint = "Sélection: " + std::to_string(selCount);
+      std::string hint = "Selection: " + std::to_string(selCount);
       drawTextCentered(window, font, hint, 15, SEL_BODY, WIN_W / 2.f,
                        WIN_H - 130.f);
     }

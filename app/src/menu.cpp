@@ -24,30 +24,30 @@ const sf::Color M_RED{220, 70, 70};
 struct Strategy {
   std::string label;
   std::string desc;
-  sf::Color   accent;
+  sf::Color accent;
 };
 
 static const Strategy STRATEGIES[5] = {
-    {"MIXTE",   "Probabiliste",    {90,  150, 230}},
-    {"COPIE",   "Copie vos coups", {160, 110, 220}},
-    {"MINIMAX", "Negamax borne",   {70,  190, 140}},
-    {"MCTS",    "Monte Carlo",     {250, 155, 50}},
-    {"RECUIT",  "Recuit simule",   {220, 70,  70}},
+    {"MIXTE", "Probabiliste", {90, 150, 230}},
+    {"COPIE", "Copie vos coups", {160, 110, 220}},
+    {"MINIMAX", "Negamax borne", {70, 190, 140}},
+    {"MCTS", "Monte Carlo", {250, 155, 50}},
+    {"RECUIT", "Recuit simule", {220, 70, 70}},
 };
 
 // ── Difficulté ───────────────────────────────────────────────
 struct Difficulty {
   std::string label;
   std::string desc;
-  int         chances;
-  sf::Color   accent;
+  int chances;
+  sf::Color accent;
 };
 
 static const Difficulty DIFFICULTIES[4] = {
-    {"FACILE",     "Niveau faible",   25,  {80,  180, 90}},
-    {"MOYEN",      "Niveau moyen",    50,  {255, 200, 60}},
-    {"DIFFICILE",  "Niveau eleve",    75,  {240, 130, 40}},
-    {"IMPOSSIBLE", "Niveau maximal",  100, {220, 60,  60}},
+    {"FACILE", "Niveau faible", 25, {80, 180, 90}},
+    {"MOYEN", "Niveau moyen", 50, {255, 200, 60}},
+    {"DIFFICILE", "Niveau eleve", 75, {240, 130, 40}},
+    {"IMPOSSIBLE", "Niveau maximal", 100, {220, 60, 60}},
 };
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -88,8 +88,8 @@ struct FloatStick {
   float x, y, vx, vy, rot, vrot, phase;
 };
 
-static void drawFloatStick(sf::RenderWindow &win, const FloatStick &fs,
-                           float t, float alpha) {
+static void drawFloatStick(sf::RenderWindow &win, const FloatStick &fs, float t,
+                           float alpha) {
   float wobble = std::sin(t * 1.2f + fs.phase) * 6.f;
   sf::Color bodyCol(180, 155, 100, (sf::Uint8)alpha);
   sf::Color headCol(180, 55, 55, (sf::Uint8)alpha);
@@ -138,8 +138,8 @@ bool run_menu(GameState &game_state) {
 
   // ── State ────────────────────────────────────────────────
   int selectedStrat = 0; // 0=MIXTE … 4=RECUIT
-  int selectedDiff  = 1; // 0=FACILE … 3=IMPOSSIBLE
-  int stickCount    = 20;
+  int selectedDiff = 1;  // 0=FACILE … 3=IMPOSSIBLE
+  int stickCount = 20;
   const int STICK_MIN = 3;
   const int STICK_MAX = 50;
 
@@ -149,11 +149,11 @@ bool run_menu(GameState &game_state) {
     srand(42);
     for (int i = 0; i < 22; ++i) {
       FloatStick fs;
-      fs.x    = (float)(rand() % WIN_W);
-      fs.y    = (float)(rand() % WIN_H);
-      fs.vx   = ((rand() % 100) / 100.f - 0.5f) * 18.f;
-      fs.vy   = ((rand() % 100) / 100.f - 0.5f) * 12.f;
-      fs.rot  = (float)(rand() % 360);
+      fs.x = (float)(rand() % WIN_W);
+      fs.y = (float)(rand() % WIN_H);
+      fs.vx = ((rand() % 100) / 100.f - 0.5f) * 18.f;
+      fs.vy = ((rand() % 100) / 100.f - 0.5f) * 12.f;
+      fs.rot = (float)(rand() % 360);
       fs.vrot = ((rand() % 100) / 100.f - 0.5f) * 30.f;
       fs.phase = (float)(rand() % 628) / 100.f;
       bgSticks.push_back(fs);
@@ -166,25 +166,26 @@ bool run_menu(GameState &game_state) {
 
   // ── Layout constants ─────────────────────────────────────
   // Strategy cards row
-  const float STRAT_LABEL_Y  = 122.f;
-  const float STRAT_CARD_Y   = 136.f;
-  const float STRAT_CARD_W   = 180.f;
-  const float STRAT_CARD_H   = 100.f;
+  const float STRAT_LABEL_Y = 122.f;
+  const float STRAT_CARD_Y = 136.f;
+  const float STRAT_CARD_W = 180.f;
+  const float STRAT_CARD_H = 100.f;
   const float STRAT_CARD_GAP = 15.f;
-  const float STRAT_TOTAL_W  = 5 * STRAT_CARD_W + 4 * STRAT_CARD_GAP;
-  const float STRAT_START_X  = (WIN_W - STRAT_TOTAL_W) / 2.f;
+  const float STRAT_TOTAL_W = 5 * STRAT_CARD_W + 4 * STRAT_CARD_GAP;
+  const float STRAT_START_X = (WIN_W - STRAT_TOTAL_W) / 2.f;
 
   // Difficulty cards row
   const float DIFF_LABEL_Y = 252.f;
-  const float DIFF_CARD_Y  = 266.f;
-  const float DIFF_CARD_W  = 200.f;
-  const float DIFF_CARD_H  = 105.f;
+  const float DIFF_CARD_Y = 266.f;
+  const float DIFF_CARD_W = 200.f;
+  const float DIFF_CARD_H = 105.f;
   const float DIFF_CARD_GAP = 60.f; // gap between cards
-  const float DIFF_START_X  = (WIN_W - (4 * DIFF_CARD_W + 3 * DIFF_CARD_GAP)) / 2.f;
+  const float DIFF_START_X =
+      (WIN_W - (4 * DIFF_CARD_W + 3 * DIFF_CARD_GAP)) / 2.f;
 
   // Stick count controls
   const float SC_LABEL_Y = 385.f;
-  const float SC_BTN_Y   = 400.f;
+  const float SC_BTN_Y = 400.f;
 
   while (window.isOpen()) {
     float dt = clock.restart().asSeconds();
@@ -218,19 +219,21 @@ bool run_menu(GameState &game_state) {
 
         // ── Stick count −/+ ───────────────────────────
         if (isHovered(WIN_W / 2.f - 110.f, SC_BTN_Y, 44.f, 44.f, mouse)) {
-          if (stickCount > STICK_MIN) stickCount--;
+          if (stickCount > STICK_MIN)
+            stickCount--;
         }
         if (isHovered(WIN_W / 2.f + 66.f, SC_BTN_Y, 44.f, 44.f, mouse)) {
-          if (stickCount < STICK_MAX) stickCount++;
+          if (stickCount < STICK_MAX)
+            stickCount++;
         }
 
         // ── JOUER ─────────────────────────────────────
         if (isHovered(WIN_W / 2.f - 120.f, WIN_H - 110.f, 240.f, 52.f, mouse)) {
-          game_state.total_sticks  = stickCount;
-          game_state.max_pick      = 3;
-          game_state.player_turn   = 1;
+          game_state.total_sticks = stickCount;
+          game_state.max_pick = 3;
+          game_state.player_turn = 1;
           game_state.ai_difficulty = DIFFICULTIES[selectedDiff].chances;
-          game_state.ai_strategy   = (AIStrategyType)selectedStrat;
+          game_state.ai_strategy = (AIStrategyType)selectedStrat;
           window.close();
           return true;
         }
@@ -248,10 +251,14 @@ bool run_menu(GameState &game_state) {
       fs.x += fs.vx * dt;
       fs.y += fs.vy * dt;
       fs.rot += fs.vrot * dt;
-      if (fs.x < -30.f) fs.x = WIN_W + 30.f;
-      if (fs.x > WIN_W + 30.f) fs.x = -30.f;
-      if (fs.y < -30.f) fs.y = WIN_H + 30.f;
-      if (fs.y > WIN_H + 30.f) fs.y = -30.f;
+      if (fs.x < -30.f)
+        fs.x = WIN_W + 30.f;
+      if (fs.x > WIN_W + 30.f)
+        fs.x = -30.f;
+      if (fs.y < -30.f)
+        fs.y = WIN_H + 30.f;
+      if (fs.y > WIN_H + 30.f)
+        fs.y = -30.f;
     }
 
     float targetY = 62.f;
@@ -292,7 +299,7 @@ bool run_menu(GameState &game_state) {
       float cy = STRAT_CARD_Y;
       bool hov = isHovered(cx, cy, STRAT_CARD_W, STRAT_CARD_H, mouse);
       bool sel = (selectedStrat == i);
-      auto &s  = STRATEGIES[i];
+      auto &s = STRATEGIES[i];
 
       sf::RectangleShape card({STRAT_CARD_W, STRAT_CARD_H});
       card.setPosition(cx, cy);
@@ -321,7 +328,8 @@ bool run_menu(GameState &game_state) {
       sf::Color labelCol = sel ? s.accent : (hov ? M_CREAM : M_MUTED);
       drawTextCentered(window, font, s.label, 14, labelCol,
                        cx + STRAT_CARD_W / 2.f, cy + 34.f);
-      sf::Color descCol = sel ? sf::Color{200, 195, 215} : sf::Color{80, 75, 95};
+      sf::Color descCol =
+          sel ? sf::Color{200, 195, 215} : sf::Color{80, 75, 95};
       drawTextCentered(window, font, s.desc, 10, descCol,
                        cx + STRAT_CARD_W / 2.f, cy + 62.f);
 
@@ -339,11 +347,21 @@ bool run_menu(GameState &game_state) {
     {
       std::string diffDetail;
       switch (selectedStrat) {
-        case 0: diffDetail = "  (% de coups optimaux)";  break;
-        case 1: diffDetail = "  (non applicable)";       break;
-        case 2: diffDetail = "  (profondeur Negamax)";   break;
-        case 3: diffDetail = "  (nb de simulations)";    break;
-        case 4: diffDetail = "  (inverse temperature)";  break;
+      case 0:
+        diffDetail = "  (% de coups optimaux)";
+        break;
+      case 1:
+        diffDetail = "  (non applicable)";
+        break;
+      case 2:
+        diffDetail = "  (profondeur Negamax)";
+        break;
+      case 3:
+        diffDetail = "  (nb de simulations)";
+        break;
+      case 4:
+        diffDetail = "  (inverse temperature)";
+        break;
       }
       // Redraw the separator avec le détail
       drawTextCentered(window, font, "DIFFICULTE" + diffDetail, 12, M_MUTED,
@@ -389,13 +407,14 @@ bool run_menu(GameState &game_state) {
       topBar.setFillColor((sel && !grayed) ? d.accent : sf::Color{70, 65, 85});
       window.draw(topBar);
 
-      sf::Color labelCol = (sel && !grayed) ? d.accent
-                         : (hov && !grayed) ? M_CREAM : M_MUTED;
+      sf::Color labelCol = (sel && !grayed)   ? d.accent
+                           : (hov && !grayed) ? M_CREAM
+                                              : M_MUTED;
       drawTextCentered(window, font, d.label, 14, labelCol,
                        cx + DIFF_CARD_W / 2.f, cy + 35.f);
 
-      sf::Color descCol = (sel && !grayed) ? sf::Color{200, 195, 215}
-                                           : sf::Color{80, 75, 95};
+      sf::Color descCol =
+          (sel && !grayed) ? sf::Color{200, 195, 215} : sf::Color{80, 75, 95};
       drawTextCentered(window, font, d.desc, 10, descCol,
                        cx + DIFF_CARD_W / 2.f, cy + 68.f);
 
@@ -413,11 +432,10 @@ bool run_menu(GameState &game_state) {
 
     float btnY = SC_BTN_Y;
 
-    drawButton(window, font, "-", WIN_W / 2.f - 110.f, btnY, 44.f, 44.f, mouse,
-               stickCount > STICK_MIN ? sf::Color{50, 45, 65}
-                                      : sf::Color{30, 28, 40},
-               sf::Color{80, 70, 100},
-               stickCount > STICK_MIN ? M_CREAM : M_MUTED, 22);
+    drawButton(
+        window, font, "-", WIN_W / 2.f - 110.f, btnY, 44.f, 44.f, mouse,
+        stickCount > STICK_MIN ? sf::Color{50, 45, 65} : sf::Color{30, 28, 40},
+        sf::Color{80, 70, 100}, stickCount > STICK_MIN ? M_CREAM : M_MUTED, 22);
 
     {
       sf::RectangleShape box({120.f, 44.f});
@@ -430,11 +448,10 @@ bool run_menu(GameState &game_state) {
                        WIN_W / 2.f, btnY + 22.f);
     }
 
-    drawButton(window, font, "+", WIN_W / 2.f + 66.f, btnY, 44.f, 44.f, mouse,
-               stickCount < STICK_MAX ? sf::Color{50, 45, 65}
-                                      : sf::Color{30, 28, 40},
-               sf::Color{80, 70, 100},
-               stickCount < STICK_MAX ? M_CREAM : M_MUTED, 22);
+    drawButton(
+        window, font, "+", WIN_W / 2.f + 66.f, btnY, 44.f, 44.f, mouse,
+        stickCount < STICK_MAX ? sf::Color{50, 45, 65} : sf::Color{30, 28, 40},
+        sf::Color{80, 70, 100}, stickCount < STICK_MAX ? M_CREAM : M_MUTED, 22);
 
     drawTextCentered(window, font,
                      "min " + std::to_string(STICK_MIN) + "  -  max " +
@@ -443,14 +460,14 @@ bool run_menu(GameState &game_state) {
 
     // Preview sticks
     {
-      int   preview  = std::min(stickCount, 20);
-      float gapP     = std::min(32.f, (float)(WIN_W - 200) / preview);
-      float totalPW  = (preview - 1) * gapP;
-      float startPX  = WIN_W / 2.f - totalPW / 2.f;
+      int preview = std::min(stickCount, 20);
+      float gapP = std::min(32.f, (float)(WIN_W - 200) / preview);
+      float totalPW = (preview - 1) * gapP;
+      float startPX = WIN_W / 2.f - totalPW / 2.f;
       float previewY = btnY + 80.f;
 
       for (int i = 0; i < preview; ++i) {
-        float px     = startPX + i * gapP;
+        float px = startPX + i * gapP;
         float wobble = std::sin(totalTime * 1.8f + i * 0.4f) * 2.f;
 
         sf::RectangleShape body({6.f, 26.f});
@@ -474,20 +491,19 @@ bool run_menu(GameState &game_state) {
 
     // ── JOUER button ──────────────────────────────────────
     {
-      auto &selS  = STRATEGIES[selectedStrat];
+      auto &selS = STRATEGIES[selectedStrat];
       bool jouerhov =
           isHovered(WIN_W / 2.f - 120.f, WIN_H - 110.f, 240.f, 52.f, mouse);
       sf::RectangleShape btn({240.f, 52.f});
       btn.setPosition(WIN_W / 2.f - 120.f, WIN_H - 110.f);
       sf::Color base = selS.accent;
-      btn.setFillColor(
-          jouerhov
-              ? sf::Color{(sf::Uint8)std::min(255, base.r + 30),
-                          (sf::Uint8)std::min(255, base.g + 30),
-                          (sf::Uint8)std::min(255, base.b + 30)}
-              : sf::Color{(sf::Uint8)(base.r * 3 / 4),
-                          (sf::Uint8)(base.g * 3 / 4),
-                          (sf::Uint8)(base.b * 3 / 4)});
+      btn.setFillColor(jouerhov
+                           ? sf::Color{(sf::Uint8)std::min(255, base.r + 30),
+                                       (sf::Uint8)std::min(255, base.g + 30),
+                                       (sf::Uint8)std::min(255, base.b + 30)}
+                           : sf::Color{(sf::Uint8)(base.r * 3 / 4),
+                                       (sf::Uint8)(base.g * 3 / 4),
+                                       (sf::Uint8)(base.b * 3 / 4)});
       btn.setOutlineColor(base);
       btn.setOutlineThickness(2.f);
       window.draw(btn);
@@ -496,8 +512,7 @@ bool run_menu(GameState &game_state) {
     }
 
     // ── QUITTER link ──────────────────────────────────────
-    bool qhov =
-        isHovered(WIN_W / 2.f - 60.f, WIN_H - 48.f, 120.f, 30.f, mouse);
+    bool qhov = isHovered(WIN_W / 2.f - 60.f, WIN_H - 48.f, 120.f, 30.f, mouse);
     drawTextCentered(window, font, "QUITTER", 13, qhov ? M_RED : M_MUTED,
                      WIN_W / 2.f, WIN_H - 33.f);
 
