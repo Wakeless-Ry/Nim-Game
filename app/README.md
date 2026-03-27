@@ -70,10 +70,22 @@ Au lancement, le menu propose trois paramètres :
 | Section | Options |
 |---------|---------|
 | **Stratégie de l'IA** | GRAPHE, COPIE, MINIMAX, MCTS, RECUIT |
-| **Difficulté** | FACILE (25), MOYEN (50), DIFFICILE (75), IMPOSSIBLE (100) |
+| **Difficulté** | 0 à 100 % (slider continu) |
 | **Nombre d'allumettes** | 3 à 50 |
 
-La signification concrète de la difficulté dépend de la stratégie choisie (voir ci-dessous).
+### Difficulté — slider continu 0–100 %
+
+La valeur sélectionnée dans le menu est passée **directement** à `game_state.ai_difficulty` (entier 0–100). Chaque stratégie l'interprète via sa propre formule — plus le pourcentage est élevé, plus l'IA est difficile, de façon **strictement monotone**.
+
+| Stratégie | Formule | 0 % | 57 % | 100 % |
+|-----------|---------|-----|------|-------|
+| GRAPHE | `P(optimal) = d / 100` | jamais optimal | optimal 57 % du temps | toujours optimal |
+| COPIE | — | ignoré | ignoré | ignoré |
+| MINIMAX | `depth = d / 10` | profondeur 0 (aléatoire) | profondeur 5 | profondeur 10 |
+| MCTS | `nb_sim = d + 1` | 1 simulation | 58 simulations | 101 simulations |
+| RECUIT | `T = (100 − d) / 20 + 0.01` | T ≈ 5.01 (très erratique) | T ≈ 2.16 | T ≈ 0.01 (quasi-optimal) |
+
+Ainsi, 57 % donne une IA **strictement meilleure** qu'à 50 % et **moins bonne** qu'à 75 %, quelle que soit la stratégie.
 
 ### Déroulement d'une partie
 
@@ -97,14 +109,20 @@ P(coup optimal) = ai_difficulty / 100
 
 **Mapping difficulté :**
 
-| Niveau | Valeur | Comportement |
-|--------|--------|--------------|
-| FACILE | 25 | Optimal 1 fois sur 4 |
-| MOYEN | 50 | Optimal 1 fois sur 2 |
-| DIFFICILE | 75 | Optimal 3 fois sur 4 |
-| IMPOSSIBLE | 100 | Toujours optimal |
+```
+P(coup optimal) = ai_difficulty / 100
+```
 
-**Efficacité :** La stratégie GRAPHE OPTIMALE est la plus "propre" pour modéliser un joueur imparfait. À IMPOSSIBLE, elle est **mathématiquement parfaite** — elle ne peut pas perdre face à un joueur en N-position. Aux niveaux inférieurs, les erreurs sont indépendantes et uniformément distribuées, ce qui lui donne un caractère aléatoire mais prévisible.
+| Valeur | Comportement |
+|--------|--------------|
+| 25 | Optimal 1 fois sur 4 |
+| 50 | Optimal 1 fois sur 2 |
+| 75 | Optimal 3 fois sur 4 |
+| 100 | Toujours optimal |
+
+Toute valeur intermédiaire est valide : 60 % joue mieux que 50 % et moins bien que 75 %, les erreurs étant indépendantes d'un tour à l'autre.
+
+**Efficacité :** La stratégie GRAPHE OPTIMALE est la plus "propre" pour modéliser un joueur imparfait. À 100 %, elle est **mathématiquement parfaite** — elle ne peut pas perdre face à un joueur en N-position. Aux valeurs inférieures, les erreurs sont indépendantes et uniformément distribuées, ce qui lui donne un caractère aléatoire mais prévisible.
 
 ---
 
@@ -138,14 +156,15 @@ En pratique, COPIE se comporte comme un joueur quasi-aléatoire avec un léger b
 depth = ai_difficulty / 10
 ```
 
-| Niveau | Valeur | Profondeur | Comportement |
-|--------|--------|------------|--------------|
-| FACILE | 25 | 2 | Voit 2 coups à l'avance → quasi-aléatoire |
-| MOYEN | 50 | 5 | Vision partielle |
-| DIFFICILE | 75 | 7 | Très solide |
-| IMPOSSIBLE | 100 | 10 | Optimal pour toute partie ≤ 50 allumettes |
+| Valeur | Profondeur | Comportement |
+|--------|------------|--------------|
+| 25 | 2 | Voit 2 coups → quasi-aléatoire |
+| 40 | 4 | Premier seuil de perfection (voit un cycle complet) |
+| 50 | 5 | Vision partielle mais solide |
+| 75 | 7 | Très solide, aucune erreur en pratique |
+| 100 | 10 | Optimal pour toute partie ≤ 50 allumettes |
 
-**Efficacité :** C'est la stratégie la plus "rigoureuse" dans sa montée en puissance. À `depth ≥ max_pick + 1 = 4`, l'IA voit toujours au moins un cycle complet de positions et joue **mathématiquement parfaitement**. À partir de DIFFICILE (depth = 7), aucune erreur n'est possible pour des parties standards. À FACILE (depth = 2), l'IA ne voit que deux coups et peut manquer des pièges distants.
+**Efficacité :** C'est la stratégie la plus "rigoureuse" dans sa montée en puissance. À `depth ≥ max_pick + 1 = 4` (soit `ai_difficulty ≥ 40`), l'IA voit toujours au moins un cycle complet de positions et joue **mathématiquement parfaitement**. En dessous, elle peut manquer des pièges distants.
 
 ---
 
@@ -159,14 +178,16 @@ depth = ai_difficulty / 10
 nb_simulations = ai_difficulty + 1
 ```
 
-| Niveau | Valeur | Simulations | Comportement |
-|--------|--------|-------------|--------------|
-| FACILE | 25 | 26 | Estimation très bruitée |
-| MOYEN | 50 | 51 | Partiel |
-| DIFFICILE | 75 | 76 | Bon sur petits tas |
-| IMPOSSIBLE | 100 | 101 | Quasi-optimal pour N ≤ ~20 |
+| Valeur | Simulations | Comportement |
+|--------|-------------|--------------|
+| 25 | 26 | Estimation très bruitée |
+| 50 | 51 | Partiel |
+| 75 | 76 | Bon sur petits tas |
+| 100 | 101 | Quasi-optimal pour N ≤ ~20 |
 
-**Efficacité :** Le MCTS est fondamentalement **statistique** : plus le budget de simulations est grand, plus l'estimation est précise. Avec 101 simulations et seulement 2-3 coups possibles (~34 simulations par coup), la convergence est bonne pour de petits tas mais devient insuffisante pour de grands N (50 allumettes). Contrairement à MINIMAX, le MCTS peut-être battu même à IMPOSSIBLE si la variance des simulations joue contre lui. Il reste néanmoins très efficace en pratique pour les tailles standard (10-20 allumettes).
+Toute valeur intermédiaire ajoute exactement 1 simulation supplémentaire par rapport à la valeur précédente : 57 % → 58 simulations.
+
+**Efficacité :** Le MCTS est fondamentalement **statistique** : plus le budget de simulations est grand, plus l'estimation est précise. Avec 101 simulations et seulement 2-3 coups possibles (~34 simulations par coup), la convergence est bonne pour de petits tas mais devient insuffisante pour de grands N (50 allumettes). Contrairement à MINIMAX, le MCTS peut être battu même à 100 % si la variance des simulations joue contre lui. Il reste néanmoins très efficace en pratique pour les tailles standard (10-20 allumettes).
 
 ---
 
@@ -186,12 +207,16 @@ où `Δ` est la perte de qualité et `T` la température.
 T = (100 - ai_difficulty) / 20.0 + 0.01
 ```
 
-| Niveau | Valeur | Température | Comportement |
-|--------|--------|-------------|--------------|
-| FACILE | 25 | ≈ 3.76 | Accepte fréquemment les mauvais coups |
-| MOYEN | 50 | ≈ 2.51 | Mixte |
-| DIFFICILE | 75 | ≈ 1.26 | Rarement sous-optimal |
-| IMPOSSIBLE | 100 | ≈ 0.01 | Quasi-toujours optimal |
+| Valeur | Température | Comportement |
+|--------|-------------|--------------|
+| 0 | ≈ 5.01 | Très erratique, accepte presque tout |
+| 25 | ≈ 3.76 | Accepte fréquemment les mauvais coups |
+| 50 | ≈ 2.51 | Mixte |
+| 57 | ≈ 2.16 | Légèrement au-dessus de la médiane |
+| 75 | ≈ 1.26 | Rarement sous-optimal |
+| 100 | ≈ 0.01 | Quasi-toujours optimal |
+
+La température décroît de façon continue avec la valeur : chaque point de pourcentage supplémentaire réduit T de `1/20 = 0.05`.
 
 **Efficacité :** Le recuit simulé est la stratégie la plus **originale** du point de vue du comportement. À haute température, l'IA joue de façon erratique mais pas complètement aléatoire — elle a une légère tendance vers les bons coups. À basse température, elle converge vers l'optimal. L'avantage conceptuel est que les erreurs ne sont pas uniformes : les coups "à peine sous-optimaux" sont bien plus souvent acceptés que les catastrophes. En pratique, elle est légèrement moins fiable que MINIMAX à difficulté équivalente car elle ne garantit pas la convergence à faible budget.
 

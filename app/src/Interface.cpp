@@ -154,12 +154,17 @@ int run_interface(GameState &game_state) {
   bool showAIMessage = false;
   std::string aiPickedCount = "";
 
+  // Point de référence vertical des allumettes — modifier ici pour tout déplacer
+  const float STICK_Y       = WIN_H / 2.f - 10.f;  // 440
+  const float ROW_PAD_TOP   = 58.f;   // espace entre haut du fond et centre des allumettes
+  const float ROW_PAD_BOT   = 52.f;   // espace entre centre et bas du fond
+
   auto layoutSticks = [&]() {
     int remaining = game_state.total_sticks;
     const float gap = 46.f;
     const float totalW = (remaining - 1) * gap;
     const float startX = WIN_W / 2.f - totalW / 2.f;
-    const float y = WIN_H / 2.f - 10.f;
+    const float y = STICK_Y;
 
     int idx = 0;
     for (auto &s : sticks) {
@@ -289,8 +294,8 @@ int run_interface(GameState &game_state) {
     std::string badge = std::to_string(game_state.total_sticks) + " restantes";
     drawTextCentered(window, font, badge, 16, MUTED, WIN_W / 2.f, 95.f);
 
-    sf::RectangleShape rowBg({(float)WIN_W - 160.f, 110.f});
-    rowBg.setPosition(80.f, WIN_H / 2.f - 68.f);
+    sf::RectangleShape rowBg({(float)WIN_W - 160.f, ROW_PAD_TOP + ROW_PAD_BOT});
+    rowBg.setPosition(80.f, STICK_Y - ROW_PAD_TOP);
     rowBg.setFillColor(PANEL);
     rowBg.setOutlineThickness(1.5f);
     window.draw(rowBg);
@@ -302,7 +307,7 @@ int run_interface(GameState &game_state) {
       std::string message =
           "Max " + std::to_string(game_state.max_pick) + " allumettes!";
       drawTextCentered(window, font, message, 24, RED_HEAD, WIN_W / 2.f,
-                       WIN_H / 2.f + 80.f);
+                       STICK_Y + ROW_PAD_BOT + 20.f);
     }
 
     if (showAIMessage) {

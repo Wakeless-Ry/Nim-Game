@@ -8,8 +8,6 @@ digraph G {
     S4 [ color=12, fillcolor=12 ]
     S8 [ color=12, fillcolor=12 ]
     S12 [ color=12, fillcolor=12 ]
-    S16 [ color=12, fillcolor=12 ]
-    S20 [ color=12, fillcolor=12 ]
     S1 -> S0
     S2 -> S0
     S2 -> S1
@@ -52,19 +50,4 @@ digraph G {
     S15 -> S12
     S15 -> S13
     S15 -> S14
-    S16 -> S13
-    S16 -> S14
-    S16 -> S15
-    S17 -> S14
-    S17 -> S15
-    S17 -> S16
-    S18 -> S15
-    S18 -> S16
-    S18 -> S17
-    S19 -> S16
-    S19 -> S17
-    S19 -> S18
-    S20 -> S17
-    S20 -> S18
-    S20 -> S19
 }

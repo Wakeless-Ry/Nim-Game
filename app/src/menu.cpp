@@ -4,6 +4,7 @@
 
 #include "../includes/menu.hpp"
 #include <SFML/Graphics.hpp>
+#include <algorithm>
 #include <cmath>
 #include <string>
 #include <vector>
@@ -121,7 +122,7 @@ static void drawSectionSeparator(sf::RenderWindow &win, sf::Font &font,
   // Ligne pleine largeur très discrète (séparation visuelle majeure)
   sf::RectangleShape fullLine({(float)WIN_W - 80.f, 1.f});
   fullLine.setPosition(40.f, y - 14.f);
-  fullLine.setFillColor({255, 183, 77, 18});
+  fullLine.setFillColor({255, 183, 77, 128});
   win.draw(fullLine);
 
   // Titre de section
@@ -150,11 +151,22 @@ bool run_menu(GameState &game_state) {
   }
 
   // ── State ────────────────────────────────────────────────
-  int selectedStrat = 0; // 0=Graphe … 4=RECUIT
-  int selectedDiff = 1;  // 0=FACILE … 3=IMPOSSIBLE
+  int selectedStrat  = 0;  // 0=Graphe … 4=RECUIT
+  int difficultyPct  = 50; // difficulté réelle 0–100, appliquée directement
   int stickCount = 20;
   const int STICK_MIN = 3;
   const int STICK_MAX = 50;
+
+  // Slider difficulté
+  bool sliderDragging = false;
+
+  // Hold-click pour les boutons +/-
+  bool  plusHeld    = false;
+  bool  minusHeld   = false;
+  float holdTimer   = 0.f;
+  float repeatTimer = 0.f;
+  const float HOLD_DELAY  = 0.35f;  // secondes avant que la répétition démarre
+  const float HOLD_REPEAT = 0.08f;  // intervalle entre deux incréments (~12/s)
 
   // ── Decorative background sticks ─────────────────────────
   std::vector<FloatStick> bgSticks;
@@ -178,30 +190,41 @@ bool run_menu(GameState &game_state) {
   float titleY = -80.f;
 
   // ── Layout constants ─────────────────────────────────────
-  // Strategy cards row
-  const float STRAT_LABEL_Y = 122.f;
-  const float STRAT_CARD_Y = 136.f;
-  const float STRAT_CARD_W = 180.f;
-  const float STRAT_CARD_H = 100.f;
+  // Dimensions des cartes (modifier ici pour changer la taille)
+  const float STRAT_CARD_W   = 180.f;
+  const float STRAT_CARD_H   = 125.f;
   const float STRAT_CARD_GAP = 15.f;
-  const float STRAT_TOTAL_W = 5 * STRAT_CARD_W + 4 * STRAT_CARD_GAP;
-  const float STRAT_START_X = (WIN_W - STRAT_TOTAL_W) / 2.f;
+  const float STRAT_TOTAL_W  = 5 * STRAT_CARD_W + 4 * STRAT_CARD_GAP;
+  const float STRAT_START_X  = (WIN_W - STRAT_TOTAL_W) / 2.f;
 
-  // Difficulty cards row — décalées vers le bas pour aérer
-  const float DIFF_LABEL_Y = 278.f; // +26 par rapport à l'original (252)
-  const float DIFF_CARD_Y = 292.f;  // +26
-  const float DIFF_CARD_W = 200.f;
-  const float DIFF_CARD_H = 105.f;
-  const float DIFF_CARD_GAP = 60.f;
-  const float DIFF_START_X =
-      (WIN_W - (4 * DIFF_CARD_W + 3 * DIFF_CARD_GAP)) / 2.f;
+  const float DIFF_SLIDER_H  = 64.f;   // hauteur totale de la zone slider difficulté
 
-  // Stick count controls — décalés pour garder la cohérence
-  const float SC_LABEL_Y = 416.f; // +31 par rapport à l'original (385)
-  const float SC_BTN_Y = 431.f;   // +31
+  // Cascade : modifier ces valeurs redistribue tout le menu automatiquement
+  const float HEADER_H      = 110.f;
+  const float LABEL_PADDING = 16.f;  // espace entre titre de section et ses cartes
+  const float SEC_GAP       = 44.f;  // espace entre bas d'une section et titre de la suivante
 
-  // Rules panel — dans l'espace libre avant le bouton JOUER
-  const float RULES_Y = SC_BTN_Y + 138.f;
+  const float STRAT_LABEL_Y = HEADER_H + 20.f;
+  const float STRAT_CARD_Y  = STRAT_LABEL_Y + LABEL_PADDING;
+  const float STRAT_BOTTOM  = STRAT_CARD_Y + STRAT_CARD_H;
+
+  const float DIFF_LABEL_Y  = STRAT_BOTTOM + SEC_GAP;
+  const float DIFF_CARD_Y   = DIFF_LABEL_Y + LABEL_PADDING;
+  const float DIFF_BOTTOM   = DIFF_CARD_Y + DIFF_SLIDER_H;
+
+  const float SC_LABEL_Y    = DIFF_BOTTOM + SEC_GAP;
+  const float SC_BTN_Y      = SC_LABEL_Y + LABEL_PADDING;
+  const float SC_PREVIEW_Y  = SC_BTN_Y + 70.f;
+  const float SC_BOTTOM     = SC_PREVIEW_Y + 42.f;
+
+  const float RULES_Y       = SC_BOTTOM + SEC_GAP;
+
+  // Slider geometry (difficulté)
+  const float SL_W       = 560.f;
+  const float SL_X       = WIN_W / 2.f - SL_W / 2.f;  // 320
+  const float SL_TRACK_Y = DIFF_CARD_Y + 30.f;         // centre vertical de la piste
+  const float SL_TRACK_H = 6.f;
+  const float SL_THUMB_R = 14.f;
 
   while (window.isOpen()) {
     float dt = clock.restart().asSeconds();
@@ -226,21 +249,30 @@ bool run_menu(GameState &game_state) {
             selectedStrat = i;
         }
 
-        // ── Difficulty cards ──────────────────────────
-        for (int i = 0; i < 4; ++i) {
-          float cx = DIFF_START_X + i * (DIFF_CARD_W + DIFF_CARD_GAP);
-          if (isHovered(cx, DIFF_CARD_Y, DIFF_CARD_W, DIFF_CARD_H, mouse))
-            selectedDiff = i;
+        // ── Slider difficulté ─────────────────────────
+        {
+          float thumbX = SL_X + (difficultyPct / 100.f) * SL_W;
+          bool onThumb = std::abs(mouse.x - thumbX) <= SL_THUMB_R + 4.f &&
+                         std::abs(mouse.y - SL_TRACK_Y) <= SL_THUMB_R + 4.f;
+          bool onTrack = mouse.y >= SL_TRACK_Y - SL_THUMB_R - 4.f &&
+                         mouse.y <= SL_TRACK_Y + SL_THUMB_R + 4.f &&
+                         mouse.x >= SL_X && mouse.x <= SL_X + SL_W;
+          if (onThumb) {
+            sliderDragging = true;
+          } else if (onTrack) {
+            float ratio = (mouse.x - SL_X) / SL_W;
+            difficultyPct = std::clamp((int)std::round(ratio * 100.f), 0, 100);
+          }
         }
 
-        // ── Stick count −/+ ───────────────────────────
+        // ── Stick count −/+ (premier clic immédiat) ───
         if (isHovered(WIN_W / 2.f - 110.f, SC_BTN_Y, 44.f, 44.f, mouse)) {
-          if (stickCount > STICK_MIN)
-            stickCount--;
+          if (stickCount > STICK_MIN) stickCount--;
+          minusHeld = true; holdTimer = 0.f; repeatTimer = 0.f;
         }
         if (isHovered(WIN_W / 2.f + 66.f, SC_BTN_Y, 44.f, 44.f, mouse)) {
-          if (stickCount < STICK_MAX)
-            stickCount++;
+          if (stickCount < STICK_MAX) stickCount++;
+          plusHeld = true; holdTimer = 0.f; repeatTimer = 0.f;
         }
 
         // ── JOUER ─────────────────────────────────────
@@ -248,7 +280,7 @@ bool run_menu(GameState &game_state) {
           game_state.total_sticks = stickCount;
           game_state.max_pick = 3;
           game_state.player_turn = 1;
-          game_state.ai_difficulty = DIFFICULTIES[selectedDiff].chances;
+          game_state.ai_difficulty = difficultyPct;
           game_state.ai_strategy = (AIStrategyType)selectedStrat;
           window.close();
           return true;
@@ -258,6 +290,35 @@ bool run_menu(GameState &game_state) {
         if (isHovered(WIN_W / 2.f - 60.f, WIN_H - 48.f, 120.f, 30.f, mouse)) {
           window.close();
           return false;
+        }
+      }
+
+      if (ev.type == sf::Event::MouseButtonReleased &&
+          ev.mouseButton.button == sf::Mouse::Left) {
+        sliderDragging = false;
+        plusHeld = minusHeld = false;
+      }
+    }
+
+    // ── Slider drag (suivi continu de la souris bouton maintenu) ──────
+    if (sliderDragging) {
+      if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
+        float ratio = std::clamp((mouse.x - SL_X) / SL_W, 0.f, 1.f);
+        difficultyPct = std::clamp((int)std::round(ratio * 100.f), 0, 100);
+      } else {
+        sliderDragging = false;
+      }
+    }
+
+    // ── Hold-click +/- ────────────────────────────────────────────────
+    if (plusHeld || minusHeld) {
+      holdTimer += dt;
+      if (holdTimer >= HOLD_DELAY) {
+        repeatTimer += dt;
+        if (repeatTimer >= HOLD_REPEAT) {
+          repeatTimer = 0.f;
+          if (plusHeld  && stickCount < STICK_MAX) stickCount++;
+          if (minusHeld && stickCount > STICK_MIN) stickCount--;
         }
       }
     }
@@ -277,7 +338,7 @@ bool run_menu(GameState &game_state) {
         fs.y = -30.f;
     }
 
-    float targetY = 62.f;
+    float targetY = 50.f;
     titleY += (targetY - titleY) * dt * 6.f;
 
     // ── Draw ─────────────────────────────────────────────
@@ -305,7 +366,7 @@ bool run_menu(GameState &game_state) {
 
     drawTextCentered(window, font, "N I M", 48, M_AMBER, WIN_W / 2.f, titleY);
     drawTextCentered(window, font, "JEU DES ALLUMETTES", 14, M_MUTED,
-                     WIN_W / 2.f, titleY + 30.f);
+                     WIN_W / 2.f, titleY + 40.f);
 
     // ── Section STRATEGIE ─────────────────────────────────
     drawSectionSeparator(window, font, "STRATEGIE DE L'IA", STRAT_LABEL_Y);
@@ -383,58 +444,82 @@ bool run_menu(GameState &game_state) {
                            DIFF_LABEL_Y, 500.f);
     }
 
-    for (int i = 0; i < 4; ++i) {
-      float cx = DIFF_START_X + i * (DIFF_CARD_W + DIFF_CARD_GAP);
-      float cy = DIFF_CARD_Y;
-      bool hov = isHovered(cx, cy, DIFF_CARD_W, DIFF_CARD_H, mouse);
-      bool sel = (selectedDiff == i);
-      bool grayed = (selectedStrat == 1); // COPIE: difficulty unused
-      auto &d = DIFFICULTIES[i];
+    // ── Slider difficulté 0–100 ───────────────────────────────
+    {
+      bool grayed = (selectedStrat == 1);
+      float t     = difficultyPct / 100.f;
 
-      sf::Color cardAccent = grayed ? sf::Color{60, 55, 75} : d.accent;
+      // Couleur dégradée vert→rouge selon le pourcentage
+      sf::Color accent = grayed ? sf::Color{60, 55, 75} : sf::Color{
+          (sf::Uint8)(80  + (int)(t * (220 - 80 ))),
+          (sf::Uint8)(180 - (int)(t * (180 - 60 ))),
+          (sf::Uint8)(90  - (int)(t * (90  - 60 )))
+      };
 
-      sf::RectangleShape card({DIFF_CARD_W, DIFF_CARD_H});
-      card.setPosition(cx, cy);
-      if (sel && !grayed) {
-        card.setFillColor({(sf::Uint8)(d.accent.r / 5),
-                           (sf::Uint8)(d.accent.g / 5),
-                           (sf::Uint8)(d.accent.b / 5)});
-        card.setOutlineColor(d.accent);
-        card.setOutlineThickness(2.5f);
-      } else if (hov && !grayed) {
-        card.setFillColor({40, 36, 55});
-        card.setOutlineColor({90, 80, 110});
-        card.setOutlineThickness(1.5f);
-      } else {
-        card.setFillColor(M_PANEL);
-        card.setOutlineColor(sf::Color{50, 45, (sf::Uint8)(grayed ? 55 : 65)});
-        card.setOutlineThickness(1.f);
+      float thumbX = SL_X + t * SL_W;
+
+      // Valeur en pourcentage (affiché en grand, centré)
+      std::string pctStr = grayed ? "N/A" : std::to_string(difficultyPct) + " %";
+      drawTextCentered(window, font, pctStr, 18,
+                       grayed ? M_MUTED : accent, WIN_W / 2.f, DIFF_CARD_Y);
+
+      // Piste de fond
+      sf::RectangleShape track({SL_W, SL_TRACK_H});
+      track.setPosition(SL_X, SL_TRACK_Y - SL_TRACK_H / 2.f);
+      track.setFillColor(grayed ? sf::Color{40, 37, 52} : sf::Color{50, 45, 65});
+      window.draw(track);
+
+      // Partie remplie (gauche → thumb)
+      if (!grayed && thumbX > SL_X) {
+        sf::RectangleShape fill({thumbX - SL_X, SL_TRACK_H});
+        fill.setPosition(SL_X, SL_TRACK_Y - SL_TRACK_H / 2.f);
+        fill.setFillColor(accent);
+        window.draw(fill);
       }
-      window.draw(card);
 
-      sf::RectangleShape topBar({DIFF_CARD_W - 4.f, 4.f});
-      topBar.setPosition(cx + 2.f, cy + 2.f);
-      topBar.setFillColor((sel && !grayed) ? d.accent : sf::Color{70, 65, 85});
-      window.draw(topBar);
+      // Ticks de référence à 0, 25, 50, 75, 100
+      const int tickVals[] = {0, 25, 50, 75, 100};
+      for (int v : tickVals) {
+        float tx   = SL_X + (v / 100.f) * SL_W;
+        bool  near = (!grayed && std::abs(difficultyPct - v) < 5);
 
-      sf::Color labelCol = (sel && !grayed)   ? d.accent
-                           : (hov && !grayed) ? M_CREAM
-                                              : M_MUTED;
-      drawTextCentered(window, font, d.label, 14, labelCol,
-                       cx + DIFF_CARD_W / 2.f, cy + 35.f);
+        sf::RectangleShape tick({2.f, 10.f});
+        tick.setOrigin(1.f, 5.f);
+        tick.setPosition(tx, SL_TRACK_Y);
+        tick.setFillColor(near ? accent : sf::Color{70, 65, 85});
+        window.draw(tick);
 
-      sf::Color descCol =
-          (sel && !grayed) ? sf::Color{200, 195, 215} : sf::Color{80, 75, 95};
-      drawTextCentered(window, font, d.desc, 10, descCol,
-                       cx + DIFF_CARD_W / 2.f, cy + 68.f);
-
-      if (sel && !grayed) {
-        sf::CircleShape dot(5.f);
-        dot.setOrigin(5.f, 5.f);
-        dot.setPosition(cx + DIFF_CARD_W / 2.f, cy + DIFF_CARD_H - 14.f);
-        dot.setFillColor(d.accent);
-        window.draw(dot);
+        drawTextCentered(window, font, std::to_string(v), 12,
+                         near ? accent : sf::Color{90, 85, 105},
+                         tx, SL_TRACK_Y + 24.f);
       }
+
+      // Curseur draggable
+      if (!grayed) {
+        bool hovThumb = std::abs(mouse.x - thumbX) <= SL_THUMB_R + 4.f &&
+                        std::abs(mouse.y - SL_TRACK_Y) <= SL_THUMB_R + 4.f;
+        sf::CircleShape thumb(SL_THUMB_R);
+        thumb.setOrigin(SL_THUMB_R, SL_THUMB_R);
+        thumb.setPosition(thumbX, SL_TRACK_Y);
+        thumb.setFillColor(sliderDragging || hovThumb
+            ? sf::Color{(sf::Uint8)std::min(255, (int)accent.r + 40),
+                        (sf::Uint8)std::min(255, (int)accent.g + 40),
+                        (sf::Uint8)std::min(255, (int)accent.b + 40)}
+            : accent);
+        thumb.setOutlineColor(M_CREAM);
+        thumb.setOutlineThickness(2.f);
+        window.draw(thumb);
+      }
+
+      // Description contextuelle selon la plage
+      const char *desc = difficultyPct < 25 ? "Beaucoup d'erreurs"
+                       : difficultyPct < 50 ? "Quelques erreurs"
+                       : difficultyPct < 75 ? "Peu d'erreurs"
+                                            : "Aucune erreur";
+      drawTextCentered(window, font,
+                       grayed ? "Difficulte non applicable" : desc,
+                       12, grayed ? M_MUTED : sf::Color{180, 175, 195},
+                       WIN_W / 2.f, SL_TRACK_Y + 40.f);
     }
 
     // ── Section NOMBRE D'ALLUMETTES ───────────────────────
@@ -474,22 +559,22 @@ bool run_menu(GameState &game_state) {
       float gapP = std::min(32.f, (float)(WIN_W - 200) / preview);
       float totalPW = (preview - 1) * gapP;
       float startPX = WIN_W / 2.f - totalPW / 2.f;
-      float previewY = btnY + 80.f;
+      float previewY = SC_PREVIEW_Y + 18.f;
 
       for (int i = 0; i < preview; ++i) {
         float px = startPX + i * gapP;
         float wobble = std::sin(totalTime * 1.8f + i * 0.4f) * 2.f;
 
-        sf::RectangleShape body({6.f, 26.f});
+        sf::RectangleShape body({8.f, 45.f});
         body.setOrigin(3.f, 13.f);
         body.setPosition(px, previewY + wobble);
         body.setFillColor({200, 175, 110, 180});
         window.draw(body);
 
-        sf::CircleShape head(3.5f);
-        head.setOrigin(3.5f, 3.5f);
+        sf::CircleShape head(5.5f);
+        head.setOrigin(4.f, 4.f);
         head.setPosition(px, previewY - 13.f + wobble);
-        head.setFillColor({190, 60, 60, 200});
+        head.setFillColor({190, 60, 60, 255});
         window.draw(head);
       }
       if (stickCount > 20) {
@@ -504,7 +589,7 @@ bool run_menu(GameState &game_state) {
 
     {
       const float BOX_W = 640.f;
-      const float BOX_H = 72.f;
+      const float BOX_H = 150.f;
       const float BOX_X = WIN_W / 2.f - BOX_W / 2.f;
       const float BOX_Y = RULES_Y + 18.f;
 
@@ -522,14 +607,14 @@ bool run_menu(GameState &game_state) {
       window.draw(leftAccent);
 
       drawTextCentered(window, font, "A chaque tour, prenez 1 a 3 allumettes.",
-                       12, M_CREAM, WIN_W / 2.f, BOX_Y + 20.f);
+                       19, M_CREAM, WIN_W / 2.f, BOX_Y + 20.f);
       drawTextCentered(
           window, font,
-          "Celui qui prend la DERNIERE allumette gagne la partie !", 12,
-          M_AMBER, WIN_W / 2.f, BOX_Y + 40.f);
+          "Celui qui prend la DERNIERE allumette gagne la partie !", 19,
+          M_AMBER, WIN_W / 2.f, BOX_Y + (BOX_H/2.f));
       drawTextCentered(window, font,
-                       "Choisissez votre strategie et defiez l'IA !", 10,
-                       M_MUTED, WIN_W / 2.f, BOX_Y + 58.f);
+                       "Choisissez votre strategie et defiez l'IA !",19,
+                       M_MUTED, WIN_W / 2.f, BOX_Y + BOX_H - 20.f);
     }
 
     // ── JOUER button ──────────────────────────────────────
