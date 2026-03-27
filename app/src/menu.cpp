@@ -45,11 +45,13 @@ struct Difficulty {
   sf::Color accent;
 };
 
+// Descriptions reécrites : chaque libellé apporte une info utile
+// sans répéter le nom du niveau (ex. "FACILE - Niveau facile")
 static const Difficulty DIFFICULTIES[4] = {
-    {"FACILE", "Niveau faible", 25, {80, 180, 90}},
-    {"MOYEN", "Niveau moyen", 50, {255, 200, 60}},
-    {"DIFFICILE", "Niveau eleve", 75, {240, 130, 40}},
-    {"IMPOSSIBLE", "Niveau maximal", 100, {220, 60, 60}},
+    {"FACILE", "Beaucoup d'erreurs", 25, {80, 180, 90}},
+    {"MOYEN", "Quelques erreurs", 50, {255, 200, 60}},
+    {"DIFFICILE", "Peu d'erreurs", 75, {240, 130, 40}},
+    {"IMPOSSIBLE", "Aucune erreur", 100, {220, 60, 60}},
 };
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -112,13 +114,22 @@ static void drawFloatStick(sf::RenderWindow &win, const FloatStick &fs, float t,
   win.draw(head);
 }
 
-// ── Helper: dessine une section de cartes générique ──────────
+// ── Section separator : titre + ligne fine centrée ───────────
 static void drawSectionSeparator(sf::RenderWindow &win, sf::Font &font,
-                                 const std::string &title, float y) {
+                                 const std::string &title, float y,
+                                 float lineW = 380.f) {
+  // Ligne pleine largeur très discrète (séparation visuelle majeure)
+  sf::RectangleShape fullLine({(float)WIN_W - 80.f, 1.f});
+  fullLine.setPosition(40.f, y - 14.f);
+  fullLine.setFillColor({255, 183, 77, 18});
+  win.draw(fullLine);
+
+  // Titre de section
   drawTextCentered(win, font, title, 12, M_MUTED, WIN_W / 2.f, y);
-  float sepW = 380.f;
-  sf::RectangleShape sep({sepW, 1.f});
-  sep.setPosition(WIN_W / 2.f - sepW / 2.f, y + 11.f);
+
+  // Ligne courte sous le titre
+  sf::RectangleShape sep({lineW, 1.f});
+  sep.setPosition(WIN_W / 2.f - lineW / 2.f, y + 11.f);
   sep.setFillColor({255, 183, 77, 35});
   win.draw(sep);
 }
@@ -176,18 +187,21 @@ bool run_menu(GameState &game_state) {
   const float STRAT_TOTAL_W = 5 * STRAT_CARD_W + 4 * STRAT_CARD_GAP;
   const float STRAT_START_X = (WIN_W - STRAT_TOTAL_W) / 2.f;
 
-  // Difficulty cards row
-  const float DIFF_LABEL_Y = 252.f;
-  const float DIFF_CARD_Y = 266.f;
+  // Difficulty cards row — décalées vers le bas pour aérer
+  const float DIFF_LABEL_Y = 278.f; // +26 par rapport à l'original (252)
+  const float DIFF_CARD_Y = 292.f;  // +26
   const float DIFF_CARD_W = 200.f;
   const float DIFF_CARD_H = 105.f;
-  const float DIFF_CARD_GAP = 60.f; // gap between cards
+  const float DIFF_CARD_GAP = 60.f;
   const float DIFF_START_X =
       (WIN_W - (4 * DIFF_CARD_W + 3 * DIFF_CARD_GAP)) / 2.f;
 
-  // Stick count controls
-  const float SC_LABEL_Y = 385.f;
-  const float SC_BTN_Y = 400.f;
+  // Stick count controls — décalés pour garder la cohérence
+  const float SC_LABEL_Y = 416.f; // +31 par rapport à l'original (385)
+  const float SC_BTN_Y = 431.f;   // +31
+
+  // Rules panel — dans l'espace libre avant le bouton JOUER
+  const float RULES_Y = SC_BTN_Y + 138.f;
 
   while (window.isOpen()) {
     float dt = clock.restart().asSeconds();
@@ -345,7 +359,7 @@ bool run_menu(GameState &game_state) {
     }
 
     // ── Section DIFFICULTE ────────────────────────────────
-    // Label de difficulté avec info stratégie-dépendante
+    // Label avec info stratégie-dépendante
     {
       std::string diffDetail;
       switch (selectedStrat) {
@@ -365,14 +379,8 @@ bool run_menu(GameState &game_state) {
         diffDetail = "  (inverse temperature)";
         break;
       }
-      // Redraw the separator avec le détail
-      drawTextCentered(window, font, "DIFFICULTE" + diffDetail, 12, M_MUTED,
-                       WIN_W / 2.f, DIFF_LABEL_Y);
-      float sepW = 500.f;
-      sf::RectangleShape sep({sepW, 1.f});
-      sep.setPosition(WIN_W / 2.f - sepW / 2.f, DIFF_LABEL_Y + 11.f);
-      sep.setFillColor({255, 183, 77, 35});
-      window.draw(sep);
+      drawSectionSeparator(window, font, "DIFFICULTE" + diffDetail,
+                           DIFF_LABEL_Y, 500.f);
     }
 
     for (int i = 0; i < 4; ++i) {
@@ -489,6 +497,39 @@ bool run_menu(GameState &game_state) {
                          "+ " + std::to_string(stickCount - 20) + " autres...",
                          10, M_MUTED, WIN_W / 2.f, previewY + 22.f);
       }
+    }
+
+    // ── Section RÈGLES DU JEU ─────────────────────────────
+    drawSectionSeparator(window, font, "REGLES DU JEU", RULES_Y, 420.f);
+
+    {
+      const float BOX_W = 640.f;
+      const float BOX_H = 72.f;
+      const float BOX_X = WIN_W / 2.f - BOX_W / 2.f;
+      const float BOX_Y = RULES_Y + 18.f;
+
+      sf::RectangleShape rulesBox({BOX_W, BOX_H});
+      rulesBox.setPosition(BOX_X, BOX_Y);
+      rulesBox.setFillColor({28, 25, 40, 220});
+      rulesBox.setOutlineColor({255, 183, 77, 45});
+      rulesBox.setOutlineThickness(1.f);
+      window.draw(rulesBox);
+
+      // Ligne décorative gauche en couleur ambre
+      sf::RectangleShape leftAccent({3.f, BOX_H - 16.f});
+      leftAccent.setPosition(BOX_X + 8.f, BOX_Y + 8.f);
+      leftAccent.setFillColor({255, 183, 77, 120});
+      window.draw(leftAccent);
+
+      drawTextCentered(window, font, "A chaque tour, prenez 1 a 3 allumettes.",
+                       12, M_CREAM, WIN_W / 2.f, BOX_Y + 20.f);
+      drawTextCentered(
+          window, font,
+          "Celui qui prend la DERNIERE allumette gagne la partie !", 12,
+          M_AMBER, WIN_W / 2.f, BOX_Y + 40.f);
+      drawTextCentered(window, font,
+                       "Choisissez votre strategie et defiez l'IA !", 10,
+                       M_MUTED, WIN_W / 2.f, BOX_Y + 58.f);
     }
 
     // ── JOUER button ──────────────────────────────────────
