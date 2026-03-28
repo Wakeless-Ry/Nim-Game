@@ -13,12 +13,14 @@ set(SOURCES
     src/main.cpp
     src/Game.c
     src/Interface.cpp
+    src/DrawingUtils.cpp
     src/AI.c
     src/menu.cpp
     includes/menu.hpp
     includes/Game.h
     includes/AI.h
     includes/Interface.hpp
+    includes/DrawingUtils.hpp
 )
 
 # Exécutable
