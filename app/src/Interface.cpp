@@ -78,14 +78,12 @@ bool drawButton(sf::RenderWindow &win, sf::Font &font, const std::string &label,
   return hov;
 }
 
-// Return values: 0 = back to menu, -1 = quit
-// playerWon: true = player won, false = AI won
+// Return values: 1 = replay, 0 = back to menu, -1 = quit
 static int showEndScreen(sf::RenderWindow &window, sf::Font &font,
                          bool playerWon) {
   const std::string title = playerWon ? "TU ES LE VAINQUEUR !" : "L'IA GAGNE !";
   const sf::Color titleCol = playerWon ? AMBER : RED_HEAD;
 
-  sf::Clock clock;
   while (window.isOpen()) {
     sf::Vector2f mouse(sf::Mouse::getPosition(window));
     sf::Event ev;
@@ -96,25 +94,20 @@ static int showEndScreen(sf::RenderWindow &window, sf::Font &font,
       }
       if (ev.type == sf::Event::MouseButtonPressed &&
           ev.mouseButton.button == sf::Mouse::Left) {
-        // REJOUER button
         if (sf::FloatRect{WIN_W / 2.f - 130.f, WIN_H / 2.f + 60.f, 115.f, 44.f}
                 .contains(mouse))
-          return 1; // replay with same settings
-        // MENU button
+          return 1;
         if (sf::FloatRect{WIN_W / 2.f + 15.f, WIN_H / 2.f + 60.f, 115.f, 44.f}
                 .contains(mouse))
-          return 0; // back to menu
+          return 0;
       }
     }
 
     window.clear(BG);
-
-    // Dim overlay
     sf::RectangleShape overlay({(float)WIN_W, (float)WIN_H});
     overlay.setFillColor({10, 8, 16, 210});
     window.draw(overlay);
 
-    // Result title
     drawTextCentered(window, font, title, 52, titleCol, WIN_W / 2.f,
                      WIN_H / 2.f - 50.f);
     drawTextCentered(window, font,
@@ -122,7 +115,6 @@ static int showEndScreen(sf::RenderWindow &window, sf::Font &font,
                                : "Dommage, peut-etre la prochaine fois",
                      18, MUTED, WIN_W / 2.f, WIN_H / 2.f + 10.f);
 
-    // Buttons
     drawButton(window, font, "REJOUER", WIN_W / 2.f - 130.f, WIN_H / 2.f + 60.f,
                115.f, 44.f, mouse, {40, 80, 50}, {55, 120, 70});
     drawButton(window, font, "MENU", WIN_W / 2.f + 15.f, WIN_H / 2.f + 60.f,
@@ -132,6 +124,39 @@ static int showEndScreen(sf::RenderWindow &window, sf::Font &font,
   }
   return -1;
 }
+
+// ── Calcul de la disposition adaptative ────────────────────────────────
+// Renvoie : nombre de lignes, allumettes par ligne, gap horizontal, espacement
+// vertical
+struct LayoutInfo {
+  int rows;
+  int perRow;
+  float gap;        // espacement horizontal entre centres
+  float rowSpacing; // espacement vertical entre lignes
+};
+
+static LayoutInfo computeLayout(int count) {
+  // Largeur utilisable (panel = WIN_W - 160px de marge)
+  const float availW = WIN_W - 160.f; // 1040 px
+  // Taille minimum entre deux allumettes pour qu'elles restent cliquables
+  const float MIN_GAP = 16.f;
+  // Espacement vertical fixe entre deux lignes
+  const float ROW_SPACE = 76.f;
+
+  // On cherche le nombre de lignes minimum pour que le gap >= MIN_GAP
+  for (int rows = 1; rows <= 4; ++rows) {
+    int perRow = (count + rows - 1) / rows; // ceil(count / rows)
+    float gap = (perRow > 1) ? availW / (perRow - 1) : 0.f;
+    if (gap >= MIN_GAP || rows == 4) {
+      // Plafonner le gap : au-delà de 46px les allumettes sont trop espacées
+      gap = std::min(gap, 46.f);
+      return {rows, perRow, gap, ROW_SPACE};
+    }
+  }
+  return {4, (count + 3) / 4, MIN_GAP, ROW_SPACE}; // fallback
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 int run_interface(GameState &game_state) {
   sf::RenderWindow window(sf::VideoMode(WIN_W, WIN_H), "Nim — IA vs Humain",
@@ -152,36 +177,54 @@ int run_interface(GameState &game_state) {
   bool player_turn = true;
   bool showMaxError = false;
   bool showAIMessage = false;
-  std::string aiPickedCount = "";
+  std::string aiPickedCount;
 
-  // Point de référence vertical des allumettes — modifier ici pour tout déplacer
-  const float STICK_Y       = WIN_H / 2.f - 10.f;  // 440
-  const float ROW_PAD_TOP   = 58.f;   // espace entre haut du fond et centre des allumettes
-  const float ROW_PAD_BOT   = 52.f;   // espace entre centre et bas du fond
+  // Centre vertical de la zone d'allumettes
+  const float AREA_CENTER_Y = WIN_H / 2.f - 10.f;
+  // Padding du fond autour de la zone d'allumettes
+  const float PAD_H = 30.f; // padding vertical haut et bas dans le fond
+
+  // ── Layout adaptatif ─────────────────────────────────────────────────────
+  // La disposition est recalculée à chaque layoutSticks()
+  LayoutInfo layout = computeLayout(game_state.total_sticks);
 
   auto layoutSticks = [&]() {
     int remaining = game_state.total_sticks;
-    const float gap = 46.f;
-    const float totalW = (remaining - 1) * gap;
-    const float startX = WIN_W / 2.f - totalW / 2.f;
-    const float y = STICK_Y;
 
-    int idx = 0;
-    for (auto &s : sticks) {
-      s.taken = (idx >= remaining);
-      if (!s.taken) {
-        s.pos = {startX + idx * gap, y};
-        s.hovered = s.selected = s.wobble = 0.f;
-        idx++;
-      }
+    // Marquer tout comme pris par défaut, puis remplir
+    for (auto &s : sticks)
+      s.taken = true;
+
+    if (remaining <= 0) {
+      selCount = 0;
+      showMaxError = false;
+      return;
+    }
+
+    layout = computeLayout(remaining);
+
+    // Hauteur totale occupée par toutes les lignes
+    float totalH = (layout.rows - 1) * layout.rowSpacing;
+    // Y de la première ligne
+    float firstRowY = AREA_CENTER_Y - totalH / 2.f;
+
+    // Largeur totale d'une ligne (basée sur perRow, même pour la dernière ligne
+    // incomplète)
+    float totalW = (layout.perRow > 1) ? (layout.perRow - 1) * layout.gap : 0.f;
+    float startX = WIN_W / 2.f - totalW / 2.f;
+
+    for (int idx = 0; idx < remaining; ++idx) {
+      int row = idx / layout.perRow;
+      int col = idx % layout.perRow;
+      sticks[idx].taken = false;
+      sticks[idx].pos = {startX + col * layout.gap,
+                         firstRowY + row * layout.rowSpacing};
+      sticks[idx].hovered = false;
+      sticks[idx].selected = false;
+      sticks[idx].wobble = 0.f;
     }
     selCount = 0;
     showMaxError = false;
-
-    if (game_state.total_sticks <= 0) {
-      for (auto &s : sticks)
-        s.taken = true;
-    }
   };
 
   layoutSticks();
@@ -198,12 +241,14 @@ int run_interface(GameState &game_state) {
 
       if (ev.type == sf::Event::MouseButtonPressed &&
           ev.mouseButton.button == sf::Mouse::Left) {
+
         bool confirmHov =
             sf::FloatRect{WIN_W / 2.f - 115.f, WIN_H - 100.f, 105.f, 40.f}
                 .contains(mouse);
         bool cancelHov =
             sf::FloatRect{WIN_W / 2.f + 10.f, WIN_H - 100.f, 105.f, 40.f}
                 .contains(mouse);
+
         if (confirmHov && selCount > 0 && player_turn) {
           if (selCount > game_state.max_pick) {
             showMaxError = true;
@@ -218,38 +263,31 @@ int run_interface(GameState &game_state) {
               s.selected = false;
             }
           }
-
           player_picks(&game_state, picked);
 
-          if (game_state.total_sticks <= 0) {
+          if (game_state.total_sticks <= 0)
             return showEndScreen(window, font, true);
-          }
 
-          if (game_state.total_sticks > 0) {
-
-            int nbStickBeforeAIplays = game_state.total_sticks;
-
+          {
+            int before = game_state.total_sticks;
             ai_picks(&game_state);
-
-            int nbStickPickByAI =
-                nbStickBeforeAIplays - game_state.total_sticks;
-
-            aiPickedCount = std::to_string(nbStickPickByAI);
+            aiPickedCount = std::to_string(before - game_state.total_sticks);
             showAIMessage = true;
 
-            if (game_state.total_sticks <= 0) {
+            if (game_state.total_sticks <= 0)
               return showEndScreen(window, font, false);
-            }
           }
 
           layoutSticks();
           selCount = 0;
+
         } else if (cancelHov) {
           for (auto &s : sticks)
             s.selected = false;
           selCount = 0;
           showMaxError = false;
         } else {
+          // Clic sur une allumette
           for (auto &s : sticks) {
             if (s.taken)
               continue;
@@ -266,15 +304,17 @@ int run_interface(GameState &game_state) {
       }
     }
 
+    // Mise à jour hover + wobble
     for (auto &s : sticks) {
-      if (!s.taken) {
-        float dx = mouse.x - s.pos.x;
-        float dy = mouse.y - s.pos.y;
-        s.hovered = (std::abs(dx) < 14.f && std::abs(dy) < 34.f);
-        s.wobble += dt * (s.hovered ? 5.f : 1.5f);
-      }
+      if (s.taken)
+        continue;
+      float dx = mouse.x - s.pos.x;
+      float dy = mouse.y - s.pos.y;
+      s.hovered = (std::abs(dx) < 14.f && std::abs(dy) < 34.f);
+      s.wobble += dt * (s.hovered ? 5.f : 1.5f);
     }
 
+    // ── Draw ────────────────────────────────────────────────────────────
     window.clear(BG);
 
     for (int i = 0; i < 13; ++i) {
@@ -284,6 +324,7 @@ int run_interface(GameState &game_state) {
       window.draw(line);
     }
 
+    // En-tête
     sf::RectangleShape header({(float)WIN_W, 62.f});
     header.setFillColor(PANEL);
     window.draw(header);
@@ -294,37 +335,49 @@ int run_interface(GameState &game_state) {
     std::string badge = std::to_string(game_state.total_sticks) + " restantes";
     drawTextCentered(window, font, badge, 16, MUTED, WIN_W / 2.f, 95.f);
 
-    sf::RectangleShape rowBg({(float)WIN_W - 160.f, ROW_PAD_TOP + ROW_PAD_BOT});
-    rowBg.setPosition(80.f, STICK_Y - ROW_PAD_TOP);
-    rowBg.setFillColor(PANEL);
-    rowBg.setOutlineThickness(1.5f);
-    window.draw(rowBg);
+    // Fond de la zone d'allumettes — s'adapte au nombre de lignes
+    {
+      float totalH = (layout.rows - 1) * layout.rowSpacing;
+      float bgH = totalH + 2.f * (PAD_H + 30.f); // demi-allumette ~30px
+      float bgY = AREA_CENTER_Y - totalH / 2.f - PAD_H - 30.f;
 
+      sf::RectangleShape rowBg({(float)WIN_W - 160.f, bgH});
+      rowBg.setPosition(80.f, bgY);
+      rowBg.setFillColor(PANEL);
+      rowBg.setOutlineThickness(1.5f);
+      window.draw(rowBg);
+    }
+
+    // Allumettes
     for (auto &s : sticks)
       drawStick(window, s);
 
+    // Messages d'erreur / IA
     if (showMaxError) {
-      std::string message =
+      float totalH = (layout.rows - 1) * layout.rowSpacing;
+      float bottomY = AREA_CENTER_Y + totalH / 2.f + PAD_H + 30.f;
+      std::string msg =
           "Max " + std::to_string(game_state.max_pick) + " allumettes!";
-      drawTextCentered(window, font, message, 24, RED_HEAD, WIN_W / 2.f,
-                       STICK_Y + ROW_PAD_BOT + 20.f);
+      drawTextCentered(window, font, msg, 24, RED_HEAD, WIN_W / 2.f,
+                       bottomY + 14.f);
     }
 
     if (showAIMessage) {
-      std::string message = "L'IA prend " + aiPickedCount + " allumette(s)!";
-      drawTextCentered(window, font, message, 28, MUTED, WIN_W / 2.f,
-                       WIN_H / 4.f);
+      std::string msg = "L'IA prend " + aiPickedCount + " allumette(s)!";
+      drawTextCentered(window, font, msg, 28, MUTED, WIN_W / 2.f, WIN_H / 4.f);
     }
 
+    // Boutons CONFIRMER / ANNULER
     sf::Color confirmFill =
         (selCount > 0 && selCount <= game_state.max_pick && player_turn)
             ? sf::Color{40, 100, 60}
             : sf::Color{30, 50, 35};
-    bool confirmHov = drawButton(window, font, "CONFIRMER", WIN_W / 2.f - 115.f,
-                                 WIN_H - 100.f, 105.f, 40.f, mouse, confirmFill,
-                                 selCount > 0 && selCount <= game_state.max_pick
-                                     ? sf::Color{55, 140, 80}
-                                     : confirmFill);
+
+    drawButton(window, font, "CONFIRMER", WIN_W / 2.f - 115.f, WIN_H - 100.f,
+               105.f, 40.f, mouse, confirmFill,
+               selCount > 0 && selCount <= game_state.max_pick
+                   ? sf::Color{55, 140, 80}
+                   : confirmFill);
 
     drawButton(window, font, "ANNULER", WIN_W / 2.f + 10.f, WIN_H - 100.f,
                105.f, 40.f, mouse, {90, 40, 40}, {130, 55, 55});
