@@ -57,6 +57,6 @@ int Strat_optimale(graphe_t *g, int node, GameState *state);
 int Strat_copie(int last_pick);
 int AI_pick_minimax(graphe_t *g, int node, GameState *state);
 int AI_pick_mcts(graphe_t *g, int node, GameState *state);
-int AI_pick_sa(graphe_t *g, int node, GameState *state);
+int AI_pick_recuit(graphe_t *g, int node, GameState *state);
 
 #endif
