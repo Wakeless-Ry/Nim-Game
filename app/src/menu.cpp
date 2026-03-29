@@ -30,12 +30,12 @@ struct Strategy {
 
 static const Strategy STRATEGIES[5] = {
     {"Graphe optimale",
-     "avec degre d'erreurs\n \t\t introduit",
+     "A une probabilite de \njouer le coup optimal\n      a chaque coup",
      {90, 150, 230}},
     {"COPIE", "Copie vos coups", {160, 110, 220}},
-    {"MINIMAX", "Negamax borne", {70, 190, 140}},
-    {"MCTS", "Monte Carlo", {250, 155, 50}},
-    {"RECUIT", "Recuit simule", {220, 70, 70}},
+    {"MINIMAX", "   Anticipe plusieurs coups \na l'avance et ne fait aucune \n            erreur tactique \n dans son horizon de calcul.", {70, 190, 140}},
+    {"MCTS", "Simule plusieurs parties pour \n      trouver le meilleur coup", {250, 155, 50}},
+    {"RECUIT", "Joue generalement bien, \n   mais accepte parfois \n      un mauvais coup", {220, 70, 70}},
 };
 
 // ── Difficulté ───────────────────────────────────────────────
@@ -402,7 +402,7 @@ bool run_menu(GameState &game_state) {
       sf::Color descCol =
           sel ? sf::Color{200, 195, 215} : sf::Color{80, 75, 95};
       drawTextCentered(window, font, s.desc, 10, descCol,
-                       cx + STRAT_CARD_W / 2.f, cy + 62.f);
+                       cx + STRAT_CARD_W / 2.f, cy + 68.f);
 
       if (sel) {
         sf::CircleShape dot(4.f);
