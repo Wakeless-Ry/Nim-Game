@@ -153,7 +153,14 @@ bool run_menu(GameState &game_state) {
   const int STICK_MAX = 50;
 
   bool diffSliderDragging = false;
-  bool stickSliderDragging = false;
+
+  // Hold-click pour les boutons +/-
+  bool  plusHeld    = false;
+  bool  minusHeld   = false;
+  float holdTimer   = 0.f;
+  float repeatTimer = 0.f;
+  const float HOLD_DELAY  = 0.35f;
+  const float HOLD_REPEAT = 0.08f;
 
   // ── Decorative background sticks ─────────────────────────
   std::vector<FloatStick> bgSticks;
@@ -204,27 +211,14 @@ bool run_menu(GameState &game_state) {
   const float D_SL_TRACK_H = 6.f;
   const float D_SL_THUMB_R = 14.f;
 
-  // Allumettes — slider (même gabarit)
-  const float SC_SLIDER_H = 64.f;
-  const float SC_LABEL_Y = DIFF_BOTTOM + SEC_GAP;
-  const float SC_CARD_Y = SC_LABEL_Y + LABEL_PADDING;
-  const float SC_BOTTOM = SC_CARD_Y + SC_SLIDER_H;
-  const float SC_PREVIEW_Y = SC_BOTTOM + 8.f;
-  const float SC_BOTTOM2 = SC_PREVIEW_Y + 42.f;
-
-  // Géométrie slider allumettes
-  const float S_SL_W = 560.f;
-  const float S_SL_X = WIN_W / 2.f - S_SL_W / 2.f;
-  const float S_SL_TRACK_Y = SC_CARD_Y + 30.f;
-  const float S_SL_TRACK_H = 6.f;
-  const float S_SL_THUMB_R = 14.f;
+  // Allumettes — boutons +/-
+  const float SC_LABEL_Y   = DIFF_BOTTOM + SEC_GAP;
+  const float SC_BTN_Y     = SC_LABEL_Y + LABEL_PADDING;
+  const float SC_PREVIEW_Y = SC_BTN_Y + 70.f;
+  const float SC_BOTTOM    = SC_PREVIEW_Y + 42.f;
 
   // Règles
-  const float RULES_Y = SC_BOTTOM2 + SEC_GAP;
-
-  // Ticks repères pour le slider allumettes
-  const int STICK_TICKS[] = {3, 10, 20, 30, 40, 50};
-  const int STICK_TICKS_N = 6;
+  const float RULES_Y = SC_BOTTOM + SEC_GAP;
 
   while (window.isOpen()) {
     float dt = clock.restart().asSeconds();
@@ -265,24 +259,14 @@ bool run_menu(GameState &game_state) {
           }
         }
 
-        // ── Slider allumettes ─────────────────────────
-        {
-          float stickRatio =
-              (stickCount - STICK_MIN) / float(STICK_MAX - STICK_MIN);
-          float thumbX = S_SL_X + stickRatio * S_SL_W;
-          bool onThumb = std::abs(mouse.x - thumbX) <= S_SL_THUMB_R + 4.f &&
-                         std::abs(mouse.y - S_SL_TRACK_Y) <= S_SL_THUMB_R + 4.f;
-          bool onTrack = mouse.y >= S_SL_TRACK_Y - S_SL_THUMB_R - 4.f &&
-                         mouse.y <= S_SL_TRACK_Y + S_SL_THUMB_R + 4.f &&
-                         mouse.x >= S_SL_X && mouse.x <= S_SL_X + S_SL_W;
-          if (onThumb) {
-            stickSliderDragging = true;
-          } else if (onTrack) {
-            float ratio = (mouse.x - S_SL_X) / S_SL_W;
-            stickCount = std::clamp(
-                (int)std::round(ratio * (STICK_MAX - STICK_MIN)) + STICK_MIN,
-                STICK_MIN, STICK_MAX);
-          }
+        // ── Stick count −/+ (premier clic immédiat) ───
+        if (isHovered(WIN_W / 2.f - 110.f, SC_BTN_Y, 44.f, 44.f, mouse)) {
+          if (stickCount > STICK_MIN) stickCount--;
+          minusHeld = true; holdTimer = 0.f; repeatTimer = 0.f;
+        }
+        if (isHovered(WIN_W / 2.f + 66.f, SC_BTN_Y, 44.f, 44.f, mouse)) {
+          if (stickCount < STICK_MAX) stickCount++;
+          plusHeld = true; holdTimer = 0.f; repeatTimer = 0.f;
         }
 
         // ── JOUER ─────────────────────────────────────
@@ -306,7 +290,7 @@ bool run_menu(GameState &game_state) {
       if (ev.type == sf::Event::MouseButtonReleased &&
           ev.mouseButton.button == sf::Mouse::Left) {
         diffSliderDragging = false;
-        stickSliderDragging = false;
+        plusHeld = minusHeld = false;
       }
     }
 
@@ -320,15 +304,16 @@ bool run_menu(GameState &game_state) {
       }
     }
 
-    // ── Drag continu : allumettes ─────────────────────────────
-    if (stickSliderDragging) {
-      if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
-        float ratio = std::clamp((mouse.x - S_SL_X) / S_SL_W, 0.f, 1.f);
-        stickCount = std::clamp(
-            (int)std::round(ratio * (STICK_MAX - STICK_MIN)) + STICK_MIN,
-            STICK_MIN, STICK_MAX);
-      } else {
-        stickSliderDragging = false;
+    // ── Hold-click +/- ────────────────────────────────────────────────
+    if (plusHeld || minusHeld) {
+      holdTimer += dt;
+      if (holdTimer >= HOLD_DELAY) {
+        repeatTimer += dt;
+        if (repeatTimer >= HOLD_REPEAT) {
+          repeatTimer = 0.f;
+          if (plusHeld  && stickCount < STICK_MAX) stickCount++;
+          if (minusHeld && stickCount > STICK_MIN) stickCount--;
+        }
       }
     }
 
@@ -527,67 +512,35 @@ bool run_menu(GameState &game_state) {
     // ── Section NOMBRE D'ALLUMETTES ───────────────────────
     drawSectionSeparator(window, font, "NOMBRE D'ALLUMETTES", SC_LABEL_Y);
 
-    // ── Slider allumettes STICK_MIN … STICK_MAX ───────────
+    // ── Boutons +/- ───────────────────────────────────────
     {
-      float stickRatio =
-          (stickCount - STICK_MIN) / float(STICK_MAX - STICK_MIN);
-      float thumbX = S_SL_X + stickRatio * S_SL_W;
+      float btnY = SC_BTN_Y;
 
-      // Valeur affichée en grand (même position que le "%" de difficulté)
-      drawTextCentered(window, font, std::to_string(stickCount) + " allumettes",
-                       18, M_AMBER, WIN_W / 2.f, SC_CARD_Y);
+      drawButton(
+          window, font, "-", WIN_W / 2.f - 110.f, btnY, 44.f, 44.f, mouse,
+          stickCount > STICK_MIN ? sf::Color{50, 45, 65} : sf::Color{30, 28, 40},
+          sf::Color{80, 70, 100}, stickCount > STICK_MIN ? M_CREAM : M_MUTED, 22);
 
-      // Piste de fond
-      sf::RectangleShape track({S_SL_W, S_SL_TRACK_H});
-      track.setPosition(S_SL_X, S_SL_TRACK_Y - S_SL_TRACK_H / 2.f);
-      track.setFillColor({50, 45, 65});
-      window.draw(track);
-
-      // Partie remplie en amber
-      if (thumbX > S_SL_X) {
-        sf::RectangleShape fill({thumbX - S_SL_X, S_SL_TRACK_H});
-        fill.setPosition(S_SL_X, S_SL_TRACK_Y - S_SL_TRACK_H / 2.f);
-        fill.setFillColor(M_AMBER);
-        window.draw(fill);
-      }
-
-      // Ticks aux valeurs repères
-      for (int ti = 0; ti < STICK_TICKS_N; ++ti) {
-        int v = STICK_TICKS[ti];
-        float tx =
-            S_SL_X + ((v - STICK_MIN) / float(STICK_MAX - STICK_MIN)) * S_SL_W;
-        bool near = std::abs(stickCount - v) < 2;
-
-        sf::RectangleShape tick({2.f, 10.f});
-        tick.setOrigin(1.f, 5.f);
-        tick.setPosition(tx, S_SL_TRACK_Y);
-        tick.setFillColor(near ? M_AMBER : sf::Color{70, 65, 85});
-        window.draw(tick);
-        drawTextCentered(window, font, std::to_string(v), 12,
-                         near ? M_AMBER : sf::Color{90, 85, 105}, tx,
-                         S_SL_TRACK_Y + 24.f);
-      }
-
-      // Curseur
       {
-        bool hovThumb = std::abs(mouse.x - thumbX) <= S_SL_THUMB_R + 4.f &&
-                        std::abs(mouse.y - S_SL_TRACK_Y) <= S_SL_THUMB_R + 4.f;
-        sf::CircleShape thumb(S_SL_THUMB_R);
-        thumb.setOrigin(S_SL_THUMB_R, S_SL_THUMB_R);
-        thumb.setPosition(thumbX, S_SL_TRACK_Y);
-        thumb.setFillColor(stickSliderDragging || hovThumb
-                               ? sf::Color{255, 210, 120}
-                               : M_AMBER);
-        thumb.setOutlineColor(M_CREAM);
-        thumb.setOutlineThickness(2.f);
-        window.draw(thumb);
+        sf::RectangleShape box({120.f, 44.f});
+        box.setPosition(WIN_W / 2.f - 60.f, btnY);
+        box.setFillColor({38, 34, 52});
+        box.setOutlineColor(M_AMBER_DIM);
+        box.setOutlineThickness(1.5f);
+        window.draw(box);
+        drawTextCentered(window, font, std::to_string(stickCount), 22, M_AMBER,
+                         WIN_W / 2.f, btnY + 22.f);
       }
 
-      // Indication min / max sous la piste
+      drawButton(
+          window, font, "+", WIN_W / 2.f + 66.f, btnY, 44.f, 44.f, mouse,
+          stickCount < STICK_MAX ? sf::Color{50, 45, 65} : sf::Color{30, 28, 40},
+          sf::Color{80, 70, 100}, stickCount < STICK_MAX ? M_CREAM : M_MUTED, 22);
+
       drawTextCentered(window, font,
-                       "min " + std::to_string(STICK_MIN) + "  —  max " +
+                       "min " + std::to_string(STICK_MIN) + "  -  max " +
                            std::to_string(STICK_MAX),
-                       10, M_MUTED, WIN_W / 2.f, S_SL_TRACK_Y + 40.f);
+                       10, M_MUTED, WIN_W / 2.f, btnY + 55.f);
     }
 
     // ── Preview d'allumettes ──────────────────────────────
