@@ -3,7 +3,7 @@
 ## Auteurs du projet  
 ORAVEC Tommy-Verdi  
 RODRIGUES Ryan  
-TEXIER--GRAILHES Killian  
+TEXIER--GRAILHES Killian
 
 ## Description du projet
 
