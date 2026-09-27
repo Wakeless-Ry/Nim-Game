@@ -1,5 +1,10 @@
 # Nim AI - Intelligence Artificielle pour le jeu de Nim
 
+## Auteurs du projet  
+ORAVEC Tommy-Verdi  
+RODRIGUES Ryan  
+TEXIER--GRAILHES Killian  
+
 ## Description du projet
 
 Ce projet universitaire implémente une intelligence artificielle jouant au jeu de Nim contre un joueur humain avec difficulté adaptable. L'IA utilise une approche théorique basée sur la théorie des graphes et le calcul du noyau du graphe pour déterminer les coups gagnants. L'interface graphique SFML offre une expérience utilisateur fluide avec sélection visuelle des allumettes, animations et feedback en temps réel.
